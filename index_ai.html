@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<!-- This is the AI version of the 4-Way Corner Chess game -->
+<!-- Original game is preserved in index.html -->
+<!-- This version adds AI players and player type selection -->
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4-Way Corner Chess with AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Timer styles */
+        .timer-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .player-timer {
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 5px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 120px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .player-timer.active {
+            border: 3px solid #ffeb3b;
+            box-shadow: 0 0 15px #ffeb3b;
+        }
+        .player-timer.low-time {
+            color: #ff4444;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        /* Options Button */
+        .options-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4a6ea9;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .options-button:hover {
+            background: #3a5a8c;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .option-group {
+            margin: 20px 0;
+        }
+
+        .option-group h3 {
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+
+        /* Checkbox styles */
+        .checkbox-container {
+            display: block;
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .checkbox-container input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 25px;
+            width: 25px;
+            background-color: #eee;
+            border-radius: 4px;
+        }
+
+        .checkbox-container:hover input ~ .checkmark {
+            background-color: #ccc;
+        }
+
+
+        .checkbox-container input:checked ~ .checkmark {
+            background-color: #4a6ea9;
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .checkbox-container input:checked ~ .checkmark:after {
+            display: block;
+        }
+        .checkbox-container .checkmark:after {
+            left: 9px;
+            top: 5px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            -webkit-transform: rotate(45deg);
+            -ms-transform: rotate(45deg);
+            transform: rotate(45deg);
+        }
+
+        /* Select dropdown */
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: #4a6ea9;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background-color: #3a5a8c;
+        }
+
+        .btn-close {
+            background-color: #f44336;
+            margin-left: 10px;
+        }
+
+
+        .btn-close:hover {
+            background-color: #d32f2f;
+        }
+
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px #4CAF50;
+        }
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+        .slider:after {
+            content: 'OFF';
+            color: white;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 70%;
+            font-size: 10px;
+            font-family: Arial, sans-serif;
+        }
+        input:checked + .slider:after {
+            content: 'ON';
+            left: 30%;
+        }
+	/* === Full-viewport background (fixed layer) + transparent stage === */
+	html, body { min-height: 100%; }
+	html { background-color: #0e2a45; }      /* fallback color instead of white */
+	body { margin: 0; background-color: transparent; }
+
+	/* Pinned, full-viewport background so no white shows at the bottom */
+	body::before {
+	  content: "";
+	  position: fixed;
+	  inset: 0;                 /* top:0; right:0; bottom:0; left:0 */
+	  z-index: -1;              /* sit behind everything */
+	  background-image:
+	    linear-gradient(rgba(21, 64, 133, 0.75), rgba(21, 64, 133, 0.75)),
+	    url("https://img1.wsimg.com/isteam/ip/0815fdc9-aafc-4fe1-99f8-dedc9ba0e23b/Skyline%20-%20Homepage.jpeg");
+	  background-size: cover;
+	  background-position: center;
+	  background-repeat: no-repeat;
+	}
+
+	/* Ensure any wrappers don’t repaint white over the background */
+	#game-container,
+	#game-canvas,
+	#root, #app, #main, #content, #wrapper,
+	.container, .controls, .panel, .hud {
+	  background: transparent !important;
+	}
+/* === Consolidated Top Bar === */
+.topbar{
+  width: 100%;
+  max-width: 1000px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  margin: 16px 0 8px;
+}
+
+.player-card{
+  background: rgba(0,0,0,0.25);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 10px;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.player-card.inactive{ opacity: .35; }
+.player-card.active{
+  border-color: #ffeb3b;
+  box-shadow: 0 0 14px rgba(255,235,59,.6);
+}
+
+.pc-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pc-swatch{
+  width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.6) inset;
+}
+
+.pc-name{ font-weight: 700; flex: 1; padding-left: 6px; }
+.player-card select{ max-width: 120px; }
+
+.player-timer{
+  text-align: center;
+  font-weight: 800;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.10);
+}
+.player-timer.active{
+  border: 2px solid #ffeb3b;
+  box-shadow: 0 0 10px #ffeb3b;
+}
+
+.turn-block{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(0,0,0,0.30);
+  border-radius: 10px;
+  padding: 10px;
+  color: #fff;
+}
+.turn-label{ font-weight: 700; }
+
+/* Responsive */
+@media (max-width: 980px){
+  .topbar{ grid-template-columns: repeat(2, minmax(180px,1fr)); }
+}
+@media (max-width: 560px){
+  .topbar{ grid-template-columns: 1fr; }
+}
+
+    </style>
+</head>
+<body>
+    <button class="options-button" id="options-button">
+        <i class="fas fa-cog"></i>
+    </button>
+    <h1>4-Way Corner Chess with AI</h1>
+    
+    <!-- Options Modal -->
+    <div class="modal" id="options-modal">
+        <div class="modal-content">
+            <h2>Game Options</h2>
+            
+            <div class="option-group">
+                <h3>Center Pawns</h3>
+                <label class="checkbox-container">Place 4 pawns in the center (one per player)
+                    <input type="checkbox" id="center-pawns">
+                    <span class="checkmark"></span>
+                </label>
+            </div>
+            
+            <div class="option-group">
+                <h3>Game Timer</h3>
+                <select id="game-timer">
+                    <option value="10">10 minutes</option>
+                    <option value="7">7 minutes</option>
+                    <option value="5">5 minutes</option>
+                    <option value="3">3 minutes</option>
+                </select>
+            </div>
+            
+            <div class="option-group">
+                <h3>Sound</h3>
+                <label class="switch">
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <p>Enable/disable sound effects</p>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+                <button class="btn" id="save-options">Save & New Game</button>
+                <button class="btn btn-close" id="close-options">Cancel</button>
+            </div>
+        </div>
+    </div>
+ 
+<!-- Consolidated Top Bar -->
+<div class="topbar" id="topbar">
+  <!-- Black -->
+  <div class="player-card" id="player-card-0">
+    <div class="pc-row">
+      <span class="pc-swatch" style="background:black;"></span>
+      <span class="pc-name">Black</span>
+      <select id="player-0-type">
+        <option value="human">Human</option>
+        <option value="computer">Computer</option>
+      </select>
+    </div>
+    <div class="player-timer" id="timer-0">Black: 10:00</div>
+  </div>
+
+  <!-- Blue -->
+  <div class="player-card" id="player-card-1">
+    <div class="pc-row">
+      <span class="pc-swatch" style="background:blue;"></span>
+      <span class="pc-name">Blue</span>
+      <select id="player-1-type">
+        <option value="human">Human</option>
+        <option value="computer" selected>Computer</option>
+      </select>
+    </div>
+    <div class="player-timer" id="timer-1">Blue: 10:00</div>
+  </div>
+
+  <!-- Green -->
+  <div class="player-card" id="player-card-2">
+    <div class="pc-row">
+      <span class="pc-swatch" style="background:green;"></span>
+      <span class="pc-name">Green</span>
+      <select id="player-2-type">
+        <option value="human">Human</option>
+        <option value="computer" selected>Computer</option>
+      </select>
+    </div>
+    <div class="player-timer" id="timer-2">Green: 10:00</div>
+  </div>
+
+  <!-- Red -->
+  <div class="player-card" id="player-card-3">
+    <div class="pc-row">
+      <span class="pc-swatch" style="background:red;"></span>
+      <span class="pc-name">Red</span>
+      <select id="player-3-type">
+        <option value="human">Human</option>
+        <option value="computer">Computer</option>
+      </select>
+    </div>
+    <div class="player-timer" id="timer-3">Red: 10:00</div>
+  </div>
+
+  <!-- Turn / Actions -->
+  <div class="turn-block">
+    <div id="status" class="turn-label">Current player: Black</div>
+    <button id="new-game">New Game</button>
+  </div>
+</div>
+     
+    <!-- Player type selection controls -->
+       
+    <canvas id="game-canvas" width="800" height="800" style="border: 1px solid #000; margin-top: 20px;"></canvas>
+
+    <!-- Player indicators -->
+        
+    <!-- Game canvas -->  
+    <div class="version-link" style="margin: 15px 0;">
+        <a href="/" style="color: #0066cc; text-decoration: none; font-weight: bold; padding: 8px 15px; background: #e9e9e9; border-radius: 4px; border: 1px solid #ccc;">
+            ↩️ Back to original version
+        </a>
+    </div>
+
+    <!-- Sound effects -->
+    <audio id="move-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3" preload="auto"></audio>
+    <audio id="capture-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3" preload="auto"></audio>
+    <audio id="check-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" preload="auto"></audio>
+    <audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" preload="auto"></audio>
+    
+    <script>
+        console.log('Script loaded, initializing AI game...');
+        
+        // Game options with defaults
+        const gameOptions = {
+            centerPawns: false,
+            gameTimeMinutes: 10,
+            soundEnabled: true
+        };
+        
+        // Sound functions
+        function playSound(soundId) {
+            if (!gameOptions.soundEnabled) return;
+            const sound = document.getElementById(soundId);
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log('Sound play failed:', e));
+            }
+        }
+        
+        // Options modal handling
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('options-modal');
+            const optionsBtn = document.getElementById('options-button');
+            const closeBtn = document.getElementById('close-options');
+            const saveBtn = document.getElementById('save-options');
+            const centerPawnsCheckbox = document.getElementById('center-pawns');
+            const gameTimerSelect = document.getElementById('game-timer');
+            const soundToggle = document.getElementById('sound-toggle');
+            
+            // Load saved options from localStorage
+            function loadOptions() {
+                const savedOptions = localStorage.getItem('chessOptions');
+                if (savedOptions) {
+                    Object.assign(gameOptions, JSON.parse(savedOptions));
+                    centerPawnsCheckbox.checked = gameOptions.centerPawns;
+                    gameTimerSelect.value = gameOptions.gameTimeMinutes;
+                    soundToggle.checked = gameOptions.soundEnabled;
+                }
+            }
+            
+            // Save options to localStorage
+            function saveOptions() {
+                gameOptions.centerPawns = centerPawnsCheckbox.checked;
+                gameOptions.gameTimeMinutes = parseInt(gameTimerSelect.value, 10);
+                gameOptions.soundEnabled = soundToggle.checked;
+                localStorage.setItem('chessOptions', JSON.stringify(gameOptions));
+            }
+            
+            // Open modal
+            optionsBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                playSound('move-sound');
+            });
+            
+            // Close modal
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                playSound('move-sound');
+            });
+            
+            // Save options and start new game
+            saveBtn.addEventListener('click', () => {
+                saveOptions();
+                modal.style.display = 'none';
+                playSound('move-sound');
+                
+                // Restart game with new options
+                if (window.gameUI) {
+                    window.gameUI.newGame();
+                }
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                    playSound('move-sound');
+                }
+            });
+            
+            // Load options when page loads
+            loadOptions();
+        });
+        
+        // Add center pawns to the game
+        function addCenterPawns(game) {
+            if (!gameOptions.centerPawns) return;
+            
+            // Center squares (3,3), (3,4), (4,4), (4,3)
+            const centerSquares = [
+                { row: 3, col: 3, player: 0 }, // Black
+                { row: 3, col: 4, player: 1 }, // Blue
+                { row: 4, col: 4, player: 2 }, // Green
+                { row: 4, col: 3, player: 3 }  // Red
+            ];
+            
+            centerSquares.forEach(square => {
+                // Check if the square is empty
+                if (!game.getPiece([square.row, square.col])) {
+                    game.addPiece(PieceType.PAWN, square.player, [square.row, square.col]);
+                }
+            });
+        }
+        
+        // Update timer display based on selected time
+        function updateTimerDisplay() {
+            const minutes = gameOptions.gameTimeMinutes;
+            const timeString = `${minutes}:00`;
+            document.querySelectorAll('.player-timer').forEach(timer => {
+                timer.textContent = timer.textContent.split(':')[0] + ': ' + timeString;
+            });
+        }
+        
+        // Game state
+        const PieceType = {
+            KING: 0,
+            QUEEN: 1,
+            ROOK: 2,
+            BISHOP: 3,
+            KNIGHT: 4,
+            PAWN: 5
+        };
+
+        const PlayerColors = [
+            'black',    // Player 0
+            'blue',     // Player 1
+            'green',    // Player 2
+            'red'       // Player 3
+        ];
+
+
+        class Game {
+            constructor() {
+                this.board = Array(8).fill().map(() => Array(8).fill(null));
+                this.players = [true, true, true, true];
+                this.currentPlayer = 0;
+                this.pieces = [];
+                this.playerTypes = ['human', 'computer', 'computer', 'human']; // Default player types
+                this.onUpdate = null; // Callback for UI updates
+                this.gameOver = false;
+                this.timeControls = {
+                    initialTime: gameOptions.gameTimeMinutes * 60, // Convert minutes to seconds
+                    increment: 0, // No increment for now
+                    lowTimeThreshold: 30 // Show warning when below 30 seconds
+                };
+                this.timeRemaining = [
+                    gameOptions.gameTimeMinutes * 60,
+                    gameOptions.gameTimeMinutes * 60,
+                    gameOptions.gameTimeMinutes * 60,
+                    gameOptions.gameTimeMinutes * 60
+                ];
+                this.timerInterval = null;
+                this.lastUpdateTime = null;
+                // Set up the board
+                this.setupBoard();
+                
+                // Add center pawns if enabled
+                addCenterPawns(this);
+                
+                // Start the game
+                this.startTimer();
+                
+                // Play game start sound
+                playSound('move-sound');
+            }
+            
+            startTimer() {
+                this.lastUpdateTime = Date.now();
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => this.updateTimer(), 100);
+            }
+            
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+            
+            updateTimer() {
+                const now = Date.now();
+                const elapsed = (now - this.lastUpdateTime) / 1000; // in seconds
+                this.lastUpdateTime = now;
+                
+                // Update time for the current active player
+                if (this.players[this.currentPlayer]) {
+                    this.timeRemaining[this.currentPlayer] = Math.max(0, this.timeRemaining[this.currentPlayer] - elapsed);
+                    this.updateTimerDisplay();
+                    
+                    // Check for timeout
+                    if (this.timeRemaining[this.currentPlayer] <= 0) {
+                        this.handleTimeout();
+                    }
+                }
+            }
+            
+            updateTimerDisplay() {
+                for (let i = 0; i < 4; i++) {
+                    const timerElement = document.getElementById(`timer-${i}`);
+                    if (!timerElement) continue;
+                    
+                    // Format time as MM:SS
+                    const minutes = Math.floor(this.timeRemaining[i] / 60);
+                    const seconds = Math.floor(this.timeRemaining[i] % 60);
+                    timerElement.textContent = `${['Black', 'Blue', 'Green', 'Red'][i]}: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    // Update active state
+                    timerElement.classList.toggle('active', i === this.currentPlayer);
+                    timerElement.classList.toggle('low-time', this.timeRemaining[i] <= this.timeControls.lowTimeThreshold);
+                }
+            }
+            
+            handleTimeout() {
+                this.stopTimer();
+                this.players[this.currentPlayer] = false;
+                alert(`${['Black', 'Blue', 'Green', 'Red'][this.currentPlayer]} player ran out of time and is out of the game!`);
+                this.nextTurn();
+            }
+            
+            nextTurn() {
+                this.stopTimer();
+                
+                // Check win condition before moving to next player
+                this.checkWinCondition();
+                
+                // If game is over, don't proceed to next turn
+                if (this.gameOver) {
+                    return;
+                }
+                
+                // Find next active player
+                let nextPlayer = (this.currentPlayer + 1) % 4;
+                let attempts = 0;
+                while (attempts < 4 && !this.players[nextPlayer]) {
+                    nextPlayer = (nextPlayer + 1) % 4;
+                    attempts++;
+                }
+                
+                this.currentPlayer = nextPlayer;
+                this.startTimer();
+                this.updateTimerDisplay();
+                
+                // Check for win condition
+                const activePlayers = this.players.filter(p => p).length;
+                if (activePlayers <= 1) {
+                    this.handleGameEnd();
+                }
+            }
+            
+            handleGameEnd() {
+                this.stopTimer();
+                const winner = this.players.findIndex(p => p);
+                if (winner !== -1) {
+                    alert(`Game over! ${['Black', 'Blue', 'Green', 'Red'][winner]} wins!`);
+                } else {
+                    alert('Game over! It\'s a draw!');
+                }
+            }
+
+
+            setupBoard() {
+                // Clear the board
+                this.board = Array(8).fill().map(() => Array(8).fill(null));
+                this.pieces = [];
+                
+                // Reset players and timers
+                this.players = [true, true, true, true];
+                this.timeRemaining = [
+                    gameOptions.gameTimeMinutes * 60,
+                    gameOptions.gameTimeMinutes * 60,
+                    gameOptions.gameTimeMinutes * 60,
+                    gameOptions.gameTimeMinutes * 60
+                ];
+                
+                // Player 0 (Black) - Top-left
+                this.placePieces(0, [0, 0], [1, 1]);
+                // Player 1 (Blue) - Top-right
+                this.placePieces(1, [0, 7], [1, -1]);
+                // Player 2 (Green) - Bottom-right
+                this.placePieces(2, [7, 7], [-1, -1]);
+                // Player 3 (Red) - Bottom-left
+                this.placePieces(3, [7, 0], [-1, 1]);
+                
+                // Start the timer for the first player
+                this.currentPlayer = 0;
+                this.updateTimerDisplay();
+                if (this.playerTypes[0] === 'human') {
+                    this.startTimer();
+                }
+            }
+
+
+            setPlayerTypes(types) {
+                this.playerTypes = [...types];
+            }
+
+
+            placePieces(player, corner, direction) {
+                const getPos = (rowOffset, colOffset) => ([
+                    corner[0] + rowOffset * direction[0],
+                    corner[1] + colOffset * direction[1]
+                ]);
+
+                // Place King in the corner
+                this.addPiece(PieceType.KING, player, corner);
+                // Place Queen one square diagonally from King
+                this.addPiece(PieceType.QUEEN, player, getPos(1, 1));
+
+                // Place Bishops
+                this.addPiece(PieceType.BISHOP, player, getPos(2, 0));
+                this.addPiece(PieceType.BISHOP, player, getPos(0, 2));
+
+                // Place Knights
+                this.addPiece(PieceType.KNIGHT, player, getPos(1, 0));
+                this.addPiece(PieceType.KNIGHT, player, getPos(0, 1));
+
+                // Place Pawns in a diagonal line, avoiding center squares
+                this.addPiece(PieceType.PAWN, player, getPos(3, 0));
+                this.addPiece(PieceType.PAWN, player, getPos(0, 3));
+
+                // Place Rooks last (so they'll be on top of pawns)
+                this.addPiece(PieceType.ROOK, player, getPos(2, 1));
+                this.addPiece(PieceType.ROOK, player, getPos(1, 2));
+            }
+
+
+            addPiece(type, player, position) {
+                const piece = {
+                    type,
+                    player,
+                    position: [...position],
+                    hasMoved: false,
+                    moveDirection: null // Will be set to 'vertical' or 'horizontal' on first move
+                };
+                this.pieces.push(piece);
+                this.board[position[0]][position[1]] = piece;
+                return piece;
+            }
+
+
+            getPiece(position) {
+                const [row, col] = position;
+                if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+                    return this.board[row][col];
+                }
+                return null;
+            }
+
+
+            getValidMoves(piece) {
+                const moves = [];
+                const [row, col] = piece.position;
+                
+                // Define movement patterns for each piece type
+                const patterns = {
+                    [PieceType.KING]: [
+                        [-1,-1], [-1,0], [-1,1],
+                        [0,-1],          [0,1],
+                        [1,-1],  [1,0],  [1,1]
+                    ],
+                    [PieceType.QUEEN]: [
+                        // Horizontal/Vertical
+                        [0,1], [0,-1], [1,0], [-1,0],
+                        // Diagonal
+                        [1,1], [1,-1], [-1,1], [-1,-1]
+                    ],
+                    [PieceType.ROOK]: [
+                        [0,1], [0,-1], [1,0], [-1,0]
+                    ],
+                    [PieceType.BISHOP]: [
+                        [1,1], [1,-1], [-1,1], [-1,-1]
+                    ],
+                    [PieceType.KNIGHT]: [
+                        [2,1], [2,-1], [-2,1], [-2,-1],
+                        [1,2], [1,-2], [-1,2], [-1,-2]
+                    ],
+                    [PieceType.PAWN]: [
+                        // Forward moves (handled separately)
+                    ]
+                };
+
+
+                // Handle pawn moves
+                if (piece.type === PieceType.PAWN) {
+                    // If pawn hasn't moved yet, it can choose any cardinal direction
+                    if (!piece.pawnDirection) {
+                        // First move: can move in any cardinal direction (up, down, left, right)
+                        const possibleMoves = [
+                            [row - 1, col],  // Up
+                            [row + 1, col],  // Down
+                            [row, col - 1],  // Left
+                            [row, col + 1]   // Right
+                        ];
+                        
+                        for (const [r, c] of possibleMoves) {
+                            if (r >= 0 && r < 8 && c >= 0 && c < 8 && this.getPiece([r, c]) === null) {
+                                moves.push([r, c]);
+                            }
+                        }
+                    } else {
+                        // Subsequent moves: can only move in the locked direction
+                        const [dr, dc] = piece.pawnDirection;
+                        const newPos = [row + dr, col + dc];
+                        
+                        // Check forward move
+                        if (newPos[0] >= 0 && newPos[0] < 8 && newPos[1] >= 0 && newPos[1] < 8 && 
+                            this.getPiece(newPos) === null) {
+                            moves.push([...newPos]);
+                        }
+                        
+                        // Check for perpendicular captures
+                        if (dr === 0) {  // If moving horizontally, check vertical captures
+                            for (const captureDr of [-1, 1]) {
+                                const capturePos = [row + captureDr, col + dc];
+                                if (capturePos[0] >= 0 && capturePos[0] < 8 && capturePos[1] >= 0 && capturePos[1] < 8) {
+                                    const target = this.getPiece(capturePos);
+                                    if (target && target.player !== piece.player) {
+                                        moves.push([...capturePos]);
+                                    }
+                                }
+                            }
+                        } else {  // If moving vertically, check horizontal captures
+                            for (const captureDc of [-1, 1]) {
+                                const capturePos = [row + dr, col + captureDc];
+                                if (capturePos[0] >= 0 && capturePos[0] < 8 && capturePos[1] >= 0 && capturePos[1] < 8) {
+                                    const target = this.getPiece(capturePos);
+                                    if (target && target.player !== piece.player) {
+                                        moves.push([...capturePos]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    return moves;
+                }
+
+                
+                // Handle knight moves (jumps over pieces)
+                if (piece.type === PieceType.KNIGHT) {
+                    for (const [dr, dc] of patterns[PieceType.KNIGHT]) {
+                        const newRow = row + dr;
+                        const newCol = col + dc;
+                        
+                        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                            const target = this.getPiece([newRow, newCol]);
+                            if (!target || target.player !== piece.player) {
+                                moves.push([newRow, newCol]);
+                            }
+                        }
+                    }
+                    return moves;
+                }
+                
+                // Handle sliding pieces (queen, rook, bishop)
+                for (const [dr, dc] of patterns[piece.type] || []) {
+                    for (let i = 1; i < 8; i++) {
+                        const newRow = row + dr * i;
+                        const newCol = col + dc * i;
+                        
+                        // Stop if we go off the board
+                        if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) break;
+                        
+                        const target = this.getPiece([newRow, newCol]);
+                        
+                        // If the square is empty, it's a valid move
+                        if (!target) {
+                            moves.push([newRow, newCol]);
+                        } 
+                        // If the square has an opponent's piece, we can capture it but go no further
+                        else if (target.player !== piece.player) {
+                            moves.push([newRow, newCol]);
+                            break;
+                        }
+                        // If the square has our own piece, we can't move there or beyond
+                        else {
+                            break;
+                        }
+                        
+                        // King only moves one square
+                        if (piece.type === PieceType.KING) break;
+                    }
+                }
+                
+                return moves;
+            }
+
+
+            movePiece(piece, newPosition) {
+                const [oldRow, oldCol] = piece.position;
+                const [newRow, newCol] = newPosition;
+                let capturedKingPlayer = null;
+
+                // Check if the move is valid
+                const validMoves = this.getValidMoves(piece);
+                const isValidMove = validMoves.some(([r, c]) => r === newRow && c === newCol);
+                if (!isValidMove) return false;
+
+                // For pawns, determine and set move direction on first move
+                if (piece.type === PieceType.PAWN && !piece.pawnDirection) {
+                    // Calculate the direction vector (dr, dc)
+                    const dr = newRow - oldRow;
+                    const dc = newCol - oldCol;
+                    // Normalize the direction to unit vector
+                    piece.pawnDirection = [dr === 0 ? 0 : dr / Math.abs(dr), dc === 0 ? 0 : dc / Math.abs(dc)];
+                }
+
+
+                // Check for capture
+                const capturedPiece = this.board[newRow][newCol];
+                if (capturedPiece) {
+                    // Check if capturing a king
+                    if (capturedPiece.type === PieceType.KING) {
+                        capturedKingPlayer = capturedPiece.player;
+                    }
+                    
+                    // Remove captured piece from the pieces array
+                    const pieceIndex = this.pieces.findIndex(p => p.position[0] === newRow && p.position[1] === newCol);
+                    if (pieceIndex !== -1) {
+                        this.pieces.splice(pieceIndex, 1);
+                    }
+                }
+
+
+                // Move the piece
+                piece.position = [newRow, newCol];
+                piece.hasMoved = true;
+                this.board[oldRow][oldCol] = null;
+                this.board[newRow][newCol] = piece;
+                
+                // Handle king capture - transfer all pieces of the captured player
+                if (capturedKingPlayer !== null) {
+                    this.transferPlayerPieces(capturedKingPlayer, this.currentPlayer);
+                    this.players[capturedKingPlayer] = false;
+                    
+                    // Check for win condition after eliminating a player
+                    this.checkWinCondition();
+                }
+                
+                // Check for pawn promotion
+                this.checkPawnPromotion(piece);
+                
+                // Move to next turn
+                this.nextTurn();
+                
+                // Play move sound
+                playSound(capturedPiece ? 'capture-sound' : 'move-sound');
+                
+                // Check for check
+                if (this.isInCheck(this.currentPlayer)) {
+                    playSound('check-sound');
+                }
+                
+                return true;
+            }
+            
+            // Transfer all pieces from one player to another
+            transferPlayerPieces(fromPlayer, toPlayer) {
+                this.pieces.forEach(piece => {
+                    if (piece.player === fromPlayer) {
+                        piece.player = toPlayer;
+                        // If the piece is a king, convert it to a queen
+                        if (piece.type === PieceType.KING) {
+                            piece.type = PieceType.QUEEN;
+                        }
+                    }
+                });
+            }
+            
+            checkPawnPromotion(piece) {
+                // Only check pawns
+                if (piece.type !== PieceType.PAWN) return;
+                
+                const [row, col] = piece.position;
+                const promotionRow = piece.player % 2 === 0 ? 7 : 0; // Opposite end of the board
+                
+                if (row === promotionRow) {
+                    // For now, automatically promote to queen
+                    // In a more complete implementation, you'd show a promotion dialog
+                    piece.type = PieceType.QUEEN;
+                }
+            }
+
+
+            nextTurn() {
+                // Stop the current player's timer
+                this.stopTimer();
+                
+                // Find the next active player
+                let nextPlayer = (this.currentPlayer + 1) % 4;
+                let attempts = 0;
+                
+                // Skip over inactive players
+                while (attempts < 4 && !this.players[nextPlayer]) {
+                    nextPlayer = (nextPlayer + 1) % 4;
+                    attempts++;
+                }
+                
+                // Update current player
+                this.currentPlayer = nextPlayer;
+                
+                // Start the timer for the next player if they're human
+                if (this.players[this.currentPlayer] && this.playerTypes[this.currentPlayer] === 'human') {
+                    this.startTimer();
+                }
+                
+                // Update the timer display
+                this.updateTimerDisplay();
+                
+                // Check for win condition
+                const activePlayers = this.players.filter(p => p).length;
+                if (activePlayers <= 1) {
+                    this.handleGameEnd();
+                }
+                
+                // Notify UI of the update
+                if (this.onUpdate) {
+                    this.onUpdate();
+                }
+            }
+
+
+            checkWinCondition() {
+                // Count pieces for each player
+                const pieceCount = [0, 0, 0, 0];
+                this.pieces.forEach(piece => pieceCount[piece.player]++);
+                
+                // Mark players with no pieces as inactive
+                for (let i = 0; i < 4; i++) {
+                    if (pieceCount[i] === 0 && this.players[i]) {
+                        this.players[i] = false;
+                    }
+                }
+                
+                // Check if only one player remains
+                const activePlayers = this.players.reduce((count, active) => count + (active ? 1 : 0), 0);
+                if (activePlayers === 1) {
+                    return this.players.indexOf(true);
+                }
+                
+                return -1; // No winner yet
+            }
+
+            // Get all pieces for a player
+            getPlayerPieces(player) {
+                return this.pieces.filter(piece => piece.player === player);
+            }
+
+
+            // Make a random valid move for the AI
+            makeAIMove() {
+                // Don't make a move if the game is over
+                if (this.players.filter(p => p).length <= 1) return false;
+                
+                const currentPlayerPieces = this.pieces.filter(p => p.player === this.currentPlayer);
+                
+                // Get all possible moves for all pieces
+                const allMoves = [];
+                currentPlayerPieces.forEach(piece => {
+                    const moves = this.getValidMoves(piece);
+                    moves.forEach(move => {
+                        allMoves.push({
+                            piece,
+                            position: move
+                        });
+                    });
+                });
+                
+                if (allMoves.length === 0) {
+                    // No valid moves, skip turn
+                    this.nextTurn();
+                    return false;
+                }
+                
+                // Choose a random move
+                const randomMove = allMoves[Math.floor(Math.random() * allMoves.length)];
+                
+                // Make the move
+                const moveResult = this.movePiece(randomMove.piece, randomMove.position);
+                
+                // If move wasn't made (shouldn't happen with valid moves), still go to next turn
+                if (!moveResult) {
+                    this.nextTurn();
+                }
+                
+                return moveResult;
+            }
+        }
+
+
+        // UI Code
+        class GameUI {
+            constructor() {
+                // Get canvas and context
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.statusEl = document.getElementById('status');
+                
+                // Set canvas size if needed
+const cssSize = Math.min(800, window.innerWidth - 40);
+const dpr = window.devicePixelRatio || 1;
+this.canvas.style.width = cssSize + 'px';
+this.canvas.style.height = cssSize + 'px';
+this.canvas.width  = Math.floor(cssSize * dpr);
+this.canvas.height = Math.floor(cssSize * dpr);
+this.ctx.scale(dpr, 1 * dpr);
+this.squareSize = cssSize / 8;
+this.ctx.imageSmoothingEnabled = true;
+this.ctx.imageSmoothingQuality = 'high';
+                
+                // Initialize game state
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.gameOver = false;
+                
+                // Bind methods to maintain 'this' context
+                this.gameUpdateCallback = this.onGameUpdate.bind(this);
+                this.handleClick = this.handleClick.bind(this);
+                
+                // Initialize the game first
+                this.game = new Game();
+                
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                // Set up the game and UI
+                this.newGame();
+                
+                // Set up player type controls after game is initialized
+                this.setupPlayerTypeControls();
+                
+                // Handle window unload to clean up timer
+                window.addEventListener('beforeunload', () => {
+                    if (this.game && this.game.stopTimer) {
+                        this.game.stopTimer();
+                    }
+                });
+                
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    const newSize = Math.min(800, window.innerWidth - 40);
+                    if (newSize !== this.canvas.width) {
+                        this.canvas.width = newSize;
+                        this.canvas.height = newSize;
+                        this.squareSize = newSize / 8;
+                        this.drawBoard();
+                    }
+                });
+            }
+            
+	    onGameUpdate() {
+    		// Clear any stale selection/highlights when the turn or board state changes
+   		this.selectedPiece = null;
+    		this.validMoves = [];
+
+    		// Update the UI whenever the game state changes
+		    this.updateUI();
+		    this.game.updateTimerDisplay();
+
+		    // If it's an AI's turn, let them move
+ 		   if (this.game.playerTypes[this.game.currentPlayer] === 'computer') {
+		        this.checkForAITurn();
+		    }
+		}
+
+            setupEventListeners() {
+                this.canvas.addEventListener('click', this.handleClick.bind(this));
+                document.getElementById('new-game').addEventListener('click', () => this.newGame());
+            }
+
+            setupPlayerTypeControls() {
+                if (!this.game || !this.game.playerTypes) {
+                    console.warn('Game not fully initialized when setting up player type controls');
+                    return;
+                }
+                
+                for (let i = 0; i < 4; i++) {
+                    const select = document.getElementById(`player-${i}-type`);
+                    if (select) {
+                        select.value = this.game.playerTypes[i] || 'human';
+                        select.addEventListener('change', () => this.updatePlayerTypes());
+                    }
+                }
+            }
+
+            updatePlayerTypes() {
+                const newTypes = [];
+                for (let i = 0; i < 4; i++) {
+                    const select = document.getElementById(`player-${i}-type`);
+                    newTypes.push(select.value);
+                }
+                this.game.setPlayerTypes(newTypes);
+                
+                // If the current player is now an AI, make a move
+                this.checkForAITurn();
+            }
+
+            handleClick(event) {
+                if (this.game.players.filter(p => p).length <= 1) return;
+                
+                // Don't process clicks if it's not a human player's turn
+                if (this.game.playerTypes[this.game.currentPlayer] === 'computer') return;
+
+                const pos = this.getBoardPosition(event);
+                if (!pos) return;
+
+                const piece = this.game.getPiece(pos);
+                if (piece && piece.player === this.game.currentPlayer) {
+                    this.selectPiece(piece);
+                } else if (this.selectedPiece) {
+                    this.tryMove(pos);
+                }
+            }
+
+            selectPiece(piece) {
+                this.selectedPiece = piece;
+                this.validMoves = this.game.getValidMoves(piece);
+                this.drawBoard();
+            }
+
+            tryMove(targetPos) {
+                if (!this.selectedPiece) return;
+                
+                const moveMade = this.game.movePiece(this.selectedPiece, targetPos);
+                if (moveMade) {
+                    this.selectedPiece = null;
+                    this.validMoves = [];
+                    this.updateUI();
+                    
+                    // The game's nextTurn() will handle AI turns and timer updates
+                }
+            }
+
+            checkForAITurn() {
+                // Only proceed if the game isn't over and it's an AI's turn
+                if (this.game.players.filter(p => p).length <= 1) return;
+                if (this.game.playerTypes[this.game.currentPlayer] !== 'computer') return;
+                
+                // Small delay to make AI moves more visible
+                setTimeout(() => {
+                    if (this.game.makeAIMove()) {
+                        // If a move was made, the UI will update via the game's nextTurn()
+                        this.updateUI();
+                        this.game.updateTimerDisplay();
+                    }
+                }, 500);
+            }
+            
+            newGame() {
+                try {
+                    // Stop any existing timer
+                    if (this.game && this.game.stopTimer) {
+                        this.game.stopTimer();
+                    }
+                    
+                    // Create new game instance
+                    this.game = new Game();
+                    this.selectedPiece = null;
+                    this.validMoves = [];
+                    this.gameOver = false;
+                    
+                    // Set up the board
+                    this.game.setupBoard();
+                    
+                    // Add center pawns if enabled
+                    addCenterPawns(this.game);
+                    
+                    // Set player types from UI
+                    const currentTypes = [];
+                    for (let i = 0; i < 4; i++) {
+                        const select = document.getElementById(`player-${i}-type`);
+                        currentTypes.push(select.value);
+                    }
+                    this.game.setPlayerTypes(currentTypes);
+                    
+                    // Set up game update callback
+                    this.game.onUpdate = this.gameUpdateCallback;
+                    
+                    // Initial UI update
+                    this.updateUI();
+                    this.game.updateTimerDisplay();
+                    
+                    // Start with AI turn if needed
+                    this.checkForAITurn();
+                    
+                    // Force a redraw of the board
+                    this.drawBoard();
+                } catch (error) {
+                    console.error('Error in newGame:', error);
+                    this.statusEl.textContent = `Error: ${error.message}`;
+                }
+            }
+
+
+            updateUI() {
+                this.drawBoard();
+                this.updatePlayerIndicators();
+                this.updateStatus();
+            }
+            
+            updateStatus() {
+                if (!this.statusEl) return;
+                
+                const playerColors = ['Black', 'Blue', 'Green', 'Red'];
+                const playerName = playerColors[this.game.currentPlayer];
+                const playerType = this.game.playerTypes[this.game.currentPlayer];
+                this.statusEl.textContent = `Current player: ${playerName}${playerType === 'computer' ? ' (AI)' : ''}`;
+            }
+
+		updatePlayerIndicators() {
+		  const names = ['Black','Blue','Green','Red'];
+
+		  for (let i = 0; i < 4; i++) {
+		    const card = document.getElementById(`player-card-${i}`);
+		    const timerEl = document.getElementById(`timer-${i}`);
+		    const active = this.game.players[i];
+
+		    // Card active/inactive + whose turn
+		    card.classList.toggle('inactive', !active);
+		    card.classList.toggle('active', i === this.game.currentPlayer && active);
+
+		    // Timer highlight still works (Game.updateTimerDisplay toggles .active)
+		    // Ensure timer label shows the color name
+		    if (timerEl && !timerEl.textContent.startsWith(names[i])) {
+		      timerEl.textContent = `${names[i]}: ${timerEl.textContent}`;
+		    }
+		  }
+		
+		  // Status text (now lives in the top bar)
+		  if (!this.gameOver && this.statusEl) {
+		    const pName = names[this.game.currentPlayer];
+		    const pType = this.game.playerTypes[this.game.currentPlayer];
+		    this.statusEl.textContent = `Current player: ${pName}${pType === 'computer' ? ' (AI)' : ''}`;
+		  }
+		}
+
+
+            drawBoard() {
+                const ctx = this.ctx;
+                const size = this.squareSize;
+                
+                // Clear the canvas
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw the board
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        // Draw square
+                        ctx.fillStyle = (row + col) % 2 === 0 ? '#f0d9b5' : '#b58863';
+                        ctx.fillRect(col * size, row * size, size, size);
+                        
+                        // Draw piece if any
+                        const piece = this.game.getPiece([row, col]);
+                        if (piece) {
+                            this.drawPiece(piece, col * size, row * size, size);
+                        }
+                    }
+                }
+                
+		 // Highlight selected piece and valid moves (only for the current human player)
+		if (
+		    this.selectedPiece &&
+		    this.selectedPiece.player === this.game.currentPlayer &&
+		    this.game.playerTypes[this.game.currentPlayer] === 'human'
+		) {
+		    const [row, col] = this.selectedPiece.position;
+		
+		    const size = this.squareSize;
+		    const ctx = this.ctx;
+
+		    // Highlight selected piece
+		    ctx.strokeStyle = 'purple';
+		    ctx.lineWidth = 4;
+		    ctx.strokeRect(col * size, row * size, size, size);
+
+		    // Highlight valid moves
+		    ctx.fillStyle = 'rgba(128, 0, 128, 0.5)';
+		    this.validMoves.forEach(([r, c]) => {
+		        ctx.beginPath();
+		        ctx.arc((c + 0.5) * size, (r + 0.5) * size, size * 0.2, 0, Math.PI * 2);
+		        ctx.fill();
+		    });
+		}
+            }
+
+
+            drawPiece(piece, x, y, size) {
+                const ctx = this.ctx;
+                const centerX = x + size / 2;
+                const centerY = y + size / 2;
+                const radius = size * 0.4;
+                
+                // Map numeric piece types to their chess piece characters
+                const pieceMap = {
+                    [PieceType.KING]: '♔',
+                    [PieceType.QUEEN]: '♕',
+                    [PieceType.ROOK]: '♖',
+                    [PieceType.BISHOP]: '♗',
+                    [PieceType.KNIGHT]: '♘',  // White knight: ♘ (U+2658)
+                    [PieceType.PAWN]: '♙'
+                };
+                
+// === Depthy token renderer ===
+
+// 1) Ambient shadow under the piece (oval)
+ctx.save();
+ctx.globalAlpha = 0.30;
+ctx.fillStyle = '#000';
+ctx.filter = 'blur(6px)';
+ctx.beginPath();
+ctx.ellipse(
+  centerX,
+  centerY + radius * 0.55,
+  radius * 0.80,
+  radius * 0.35,
+  0, 0, Math.PI * 2
+);
+ctx.fill();
+ctx.restore();
+
+// 2) Base disc
+ctx.save();
+ctx.beginPath();
+ctx.arc(centerX, centerY, radius * 0.96, 0, Math.PI * 2);
+ctx.fillStyle = PlayerColors[piece.player];
+ctx.fill();
+
+// 3) Dark rim for depth
+ctx.lineWidth = Math.max(2, radius * 0.12);
+ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+ctx.stroke();
+
+// 4) Soft inner radial (curvature)
+const inner = ctx.createRadialGradient(
+  centerX, centerY, radius * 0.15,
+  centerX, centerY, radius * 0.95
+);
+inner.addColorStop(0, 'rgba(255,255,255,0.10)');
+inner.addColorStop(0.6, 'rgba(255,255,255,0.00)');
+inner.addColorStop(1, 'rgba(0,0,0,0.35)');
+ctx.fillStyle = inner;
+ctx.beginPath();
+ctx.arc(centerX, centerY, radius * 0.96, 0, Math.PI * 2);
+ctx.fill();
+
+// 5) Gloss streak
+ctx.beginPath();
+ctx.arc(
+  centerX - radius * 0.25,
+  centerY - radius * 0.25,
+  radius * 0.60,
+  Math.PI * 1.05,
+  Math.PI * 1.9
+);
+ctx.lineWidth = Math.max(1.5, radius * 0.10);
+ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+ctx.lineCap = 'round';
+ctx.stroke();
+ctx.restore();
+
+// 6) Piece symbol with subtle shadow
+const symbol = pieceMap[piece.type] || '?';
+ctx.save();
+ctx.fillStyle = 'white';
+ctx.font = `${radius * 1.5}px Arial, sans-serif`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.shadowColor = 'rgba(0,0,0,0.35)';
+ctx.shadowBlur = 4;
+ctx.shadowOffsetY = 2;
+ctx.fillText(symbol, centerX, centerY);
+ctx.restore();
+               
+                // Reset font for any subsequent text drawing
+                ctx.font = `${size * 0.5}px Arial`;
+            }
+
+
+            getBoardPosition(event) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                const row = Math.floor(y / this.squareSize);
+                const col = Math.floor(x / this.squareSize);
+                return [row, col];
+            }
+        }
+        
+        // Initialize the game when the page loads
+        window.onload = function() {
+            // Update timer display with initial values
+            updateTimerDisplay();
+            try {
+                console.log('Window loaded, creating GameUI...');
+                const gameUI = new GameUI();
+                console.log('GameUI created successfully');
+            } catch (error) {
+                console.error('Error initializing game:', error);
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            }
+        };
+    </script>
+</body>
+</html>

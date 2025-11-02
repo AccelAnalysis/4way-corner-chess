@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>4-Way Corner Chess</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        #game-container {
+            margin: 20px 0;
+        }
+        #game-canvas {
+            background: white;
+            border: 2px solid #333;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #status {
+            margin: 10px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+            min-height: 1.5em;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .player-indicator {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 10px;
+        }
+        .player {
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        .player.active {
+            opacity: 1;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>4-Way Corner Chess</h1>
+    <div class="player-indicator">
+        <div id="player-0" class="player" style="background-color: black;">Black</div>
+        <div id="player-1" class="player" style="background-color: blue;">Blue</div>
+        <div id="player-2" class="player" style="background-color: green;">Green</div>
+        <div id="player-3" class="player" style="background-color: red; color: white;">Red</div>
+    </div>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="800"></canvas>
+    </div>
+    <div class="version-link" style="margin: 15px 0;">
+        <a href="/ai" style="color: #0066cc; text-decoration: none; font-weight: bold; padding: 8px 15px; background: #e9e9e9; border-radius: 4px; border: 1px solid #ccc;">
+            🎮 Try the AI version with computer players
+        </a>
+    </div>
+    <div id="status">Setting up game...</div>
+    <div>
+        <button id="new-game">New Game</button>
+    </div>
+
+    <script>
+        // Game state
+        const PieceType = {
+            KING: 0,
+            QUEEN: 1,
+            ROOK: 2,
+            BISHOP: 3,
+            KNIGHT: 4,
+            PAWN: 5
+        };
+
+        const PlayerColors = [
+            'black',    // Player 0
+            'blue',     // Player 1
+            'green',    // Player 2
+            'red'       // Player 3
+        ];
+
+
+        class Game {
+            constructor() {
+                this.board = Array(8).fill().map(() => Array(8).fill(null));
+                this.players = [true, true, true, true];
+                this.currentPlayer = 0;
+                this.pieces = [];
+                this.setupBoard();
+            }
+
+
+            setupBoard() {
+                // Player 0 (Black) - Top-left
+                this.placePieces(0, [0, 0], [1, 1]);
+                // Player 1 (Blue) - Top-right
+                this.placePieces(1, [0, 7], [1, -1]);
+                // Player 2 (Green) - Bottom-right
+                this.placePieces(2, [7, 7], [-1, -1]);
+                // Player 3 (Red) - Bottom-left
+                this.placePieces(3, [7, 0], [-1, 1]);
+            }
+
+
+            placePieces(player, corner, direction) {
+                const getPos = (rowOffset, colOffset) => ([
+                    corner[0] + rowOffset * direction[0],
+                    corner[1] + colOffset * direction[1]
+                ]);
+
+                // Place King in the corner
+                this.addPiece(PieceType.KING, player, corner);
+
+                // Place Queen one square diagonally from King
+                this.addPiece(PieceType.QUEEN, player, getPos(1, 1));
+
+
+                // Place Bishops
+                this.addPiece(PieceType.BISHOP, player, getPos(2, 0));
+                this.addPiece(PieceType.BISHOP, player, getPos(0, 2));
+
+                // Place Knights
+                this.addPiece(PieceType.KNIGHT, player, getPos(1, 0));
+                this.addPiece(PieceType.KNIGHT, player, getPos(0, 1));
+
+                // Place Pawns in a diagonal line, avoiding center squares
+                this.addPiece(PieceType.PAWN, player, getPos(3, 0));  // Below the bishop
+                this.addPiece(PieceType.PAWN, player, getPos(0, 3));  // To the right of the bishop
+
+                // Place Rooks last (so they'll be on top of pawns)
+                this.addPiece(PieceType.ROOK, player, getPos(2, 1));
+                this.addPiece(PieceType.ROOK, player, getPos(1, 2));
+            }
+
+
+            addPiece(type, player, position) {
+                const piece = {
+                    type,
+                    player,
+                    position: [...position],
+                    hasMoved: false
+                };
+                this.pieces.push(piece);
+                this.board[position[0]][position[1]] = piece;
+                return piece;
+            }
+
+
+            getPiece(position) {
+                const [row, col] = position;
+                if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+                    return this.board[row][col];
+                }
+                return null;
+            }
+
+
+            getValidMoves(piece) {
+                // Simplified move logic - allow moving one square in any direction
+                // In a real implementation, implement proper chess move rules
+                const moves = [];
+                const [row, col] = piece.position;
+
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        
+                        const newRow = row + dr;
+                        const newCol = col + dc;
+                        
+                        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                            const target = this.getPiece([newRow, newCol]);
+                            if (!target || target.player !== piece.player) {
+                                moves.push([newRow, newCol]);
+                            }
+                        }
+                    }
+                }
+
+                return moves;
+            }
+
+
+            movePiece(piece, newPosition) {
+                const [oldRow, oldCol] = piece.position;
+                const [newRow, newCol] = newPosition;
+                
+                // Remove any piece at the target position
+                const target = this.getPiece(newPosition);
+                if (target) {
+                    const index = this.pieces.findIndex(p => p === target);
+                    if (index !== -1) {
+                        this.pieces.splice(index, 1);
+                    }
+                }
+                
+                // Move the piece
+                this.board[oldRow][oldCol] = null;
+                piece.position = [newRow, newCol];
+                this.board[newRow][newCol] = piece;
+                piece.hasMoved = true;
+                
+                return true;
+            }
+
+
+            nextTurn() {
+                do {
+                    this.currentPlayer = (this.currentPlayer + 1) % 4;
+                } while (!this.players[this.currentPlayer]);
+            }
+
+
+            checkWinCondition() {
+                // Count pieces for each player
+                const pieceCount = [0, 0, 0, 0];
+                this.pieces.forEach(piece => pieceCount[piece.player]++);
+                
+                // Mark players with no pieces as inactive
+                for (let i = 0; i < 4; i++) {
+                    if (pieceCount[i] === 0 && this.players[i]) {
+                        this.players[i] = false;
+                    }
+                }
+                
+                // Check if only one player remains
+                const activePlayers = this.players.reduce((count, active) => count + (active ? 1 : 0), 0);
+                if (activePlayers === 1) {
+                    return this.players.indexOf(true);
+                }
+                
+                return -1; // No winner yet
+            }
+        }
+
+
+        // UI Code
+        class GameUI {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.statusEl = document.getElementById('status');
+                this.squareSize = this.canvas.width / 8;
+                this.game = new Game();
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.gameOver = false;
+
+                this.setupEventListeners();
+                this.updateUI();
+                this.drawBoard();
+            }
+
+
+            setupEventListeners() {
+                this.canvas.addEventListener('click', this.handleClick.bind(this));
+                document.getElementById('new-game').addEventListener('click', () => this.newGame());
+            }
+
+
+            handleClick(event) {
+                if (this.gameOver) return;
+                
+                const [row, col] = this.getBoardPosition(event);
+                const piece = this.game.getPiece([row, col]);
+                
+                // If a piece is already selected
+                if (this.selectedPiece) {
+                    // If clicking on a friendly piece, select it instead
+                    if (piece && piece.player === this.game.currentPlayer) {
+                        this.selectPiece(piece);
+                    } 
+                    // Otherwise, try to move the selected piece
+                    else {
+                        this.tryMove([row, col]);
+                    }
+                } 
+                // If no piece is selected, select the clicked piece if it's the current player's
+                else if (piece && piece.player === this.game.currentPlayer) {
+                    this.selectPiece(piece);
+                }
+            }
+
+
+            selectPiece(piece) {
+                this.selectedPiece = piece;
+                this.validMoves = this.game.getValidMoves(piece);
+                this.drawBoard();
+            }
+
+
+            tryMove(targetPos) {
+                const [row, col] = targetPos;
+                
+                // Check if the move is valid
+                const isValidMove = this.validMoves.some(([r, c]) => r === row && c === col);
+                
+                if (isValidMove) {
+                    // Make the move
+                    this.game.movePiece(this.selectedPiece, targetPos);
+                    
+                    // Check for win condition
+                    const winner = this.game.checkWinCondition();
+                    if (winner !== -1) {
+                        this.gameOver = true;
+                        this.statusEl.textContent = `Game over! ${['Black', 'Blue', 'Green', 'Red'][winner]} wins!`;
+                    } else {
+                        // Next player's turn
+                        this.game.nextTurn();
+                        this.updateUI();
+                    }
+                    
+                    // Clear selection
+                    this.selectedPiece = null;
+                    this.validMoves = [];
+                    this.drawBoard();
+                }
+            }
+
+
+            newGame() {
+                this.game = new Game();
+                this.selectedPiece = null;
+                this.validMoves = [];
+                this.gameOver = false;
+                this.updateUI();
+                this.drawBoard();
+            }
+
+
+            updateUI() {
+                // Update player indicators
+                for (let i = 0; i < 4; i++) {
+                    const playerEl = document.getElementById(`player-${i}`);
+                    if (this.game.players[i]) {
+                        playerEl.style.opacity = i === this.game.currentPlayer ? '1' : '0.7';
+                        playerEl.style.border = i === this.game.currentPlayer ? '2px solid #333' : 'none';
+                    } else {
+                        playerEl.style.opacity = '0.3';
+                        playerEl.style.border = 'none';
+                    }
+                }
+                
+                // Update status
+                if (!this.gameOver) {
+                    this.statusEl.textContent = `Current player: ${['Black', 'Blue', 'Green', 'Red'][this.game.currentPlayer]}`;
+                }
+            }
+
+
+            drawBoard() {
+                const ctx = this.ctx;
+                const size = this.squareSize;
+                
+                // Clear the canvas
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw the board
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        // Draw square
+                        ctx.fillStyle = (row + col) % 2 === 0 ? '#f0d9b5' : '#b58863';
+                        ctx.fillRect(col * size, row * size, size, size);
+                        
+                        // Draw piece if any
+                        const piece = this.game.getPiece([row, col]);
+                        if (piece) {
+                            this.drawPiece(piece, col * size, row * size, size);
+                        }
+                    }
+                }
+                
+                // Highlight selected piece and valid moves
+                if (this.selectedPiece) {
+                    const [row, col] = this.selectedPiece.position;
+                    
+                    // Highlight selected piece
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(col * size, row * size, size, size);
+                    
+                    // Highlight valid moves
+                    ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                    this.validMoves.forEach(([r, c]) => {
+                        ctx.beginPath();
+                        ctx.arc(
+                            (c + 0.5) * size,
+                            (r + 0.5) * size,
+                            size * 0.2,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+                    });
+                }
+            }
+
+
+            drawPiece(piece, x, y, size) {
+                const ctx = this.ctx;
+                const centerX = x + size / 2;
+                const centerY = y + size / 2;
+                const radius = size * 0.4;
+                
+                // Draw piece background
+                ctx.fillStyle = PlayerColors[piece.player];
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw piece border
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw piece symbol
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `${size * 0.5}px Arial`;
+                
+                let symbol = '';
+                switch (piece.type) {
+                    case PieceType.KING: symbol = 'K'; break;
+                    case PieceType.QUEEN: symbol = 'Q'; break;
+                    case PieceType.ROOK: symbol = 'R'; break;
+                    case PieceType.BISHOP: symbol = 'B'; break;
+                    case PieceType.KNIGHT: 
+                        // Draw 'K' with a smaller 'n' for knight
+                        ctx.fillText('K', centerX - size * 0.1, centerY);
+                        ctx.font = `${size * 0.3}px Arial`;
+                        ctx.fillText('n', centerX + size * 0.1, centerY + size * 0.1);
+                        return;
+                    case PieceType.PAWN: symbol = 'P'; break;
+                }
+                
+                if (symbol) {
+                    ctx.fillText(symbol, centerX, centerY);
+                }
+            }
+
+
+            getBoardPosition(event) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                const row = Math.floor(y / this.squareSize);
+                const col = Math.floor(x / this.squareSize);
+                return [row, col];
+            }
+        }
+
+        // Start the game when the page loads
+        window.onload = () => {
+            const gameUI = new GameUI();
+        };
+    </script>
+</body>
+</html>
