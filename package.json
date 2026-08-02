@@ -1,0 +1,15 @@
+{
+  "name": "kani-4way-corner-chess",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @kani/web",
+    "build": "npm run build --workspace @kani/web",
+    "start": "npm run start --workspace @kani/web"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}
