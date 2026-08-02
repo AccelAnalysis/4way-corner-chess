@@ -1,8 +1,46 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /artifacts/{appId}/public/data/matches/{roomId} {
-      allow read, write: if request.auth != null;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function roomMember(roomId) {
+      return signedIn() && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid));
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false;
+
+      match /coinLedger/{entryId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    match /rooms/{roomId} {
+      allow read: if roomMember(roomId);
+      allow write: if false;
+
+      match /players/{playerId} {
+        allow read: if roomMember(roomId);
+        allow write: if false;
+      }
+
+      match /moves/{moveId} {
+        allow read: if roomMember(roomId);
+        allow write: if false;
+      }
+
+      match /chat/{messageId} {
+        allow read: if roomMember(roomId);
+        allow write: if false;
+      }
+    }
+
+    match /stripeCheckoutSessions/{sessionId} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

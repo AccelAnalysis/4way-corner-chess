@@ -177,7 +177,7 @@
             </h1>
             <div className="flex gap-4">
                <div className="flex flex-col items-end">
-                 <span className="text-[10px] themed-text-muted font-bold uppercase tracking-widest">Kani Coins</span>
+                 <span className="text-[10px] themed-text-muted font-bold uppercase tracking-widest" title="Local play rewards; paid balance is managed in the secure Coin Shop.">Practice Coins</span>
                  <div className="flex items-center gap-1 font-black text-yellow-600 text-lg drop-shadow-sm">
                    <Coins size={18}/> {profile.coins}
                  </div>

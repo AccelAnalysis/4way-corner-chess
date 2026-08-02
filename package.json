@@ -7,9 +7,11 @@
   "scripts": {
     "dev": "npm run dev --workspace @kani/web",
     "build": "npm run build --workspace @kani/web",
-    "start": "npm run start --workspace @kani/web"
+    "start": "npm run start --workspace @kani/web",
+    "test": "npm run test --workspace @kani/web",
+    "check": "npm run check --workspace @kani/web"
   },
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.0.0"
   }
 }

@@ -5,3 +5,4 @@ node_modules/
 .env.*.local
 .vercel/
 src/components/KaniGame.jsx
+src/components/OnlineArena.jsx

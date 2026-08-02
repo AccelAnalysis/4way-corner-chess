@@ -261,18 +261,8 @@
     }
   };
 
-  const buyTheme = (themeKey) => {
-    const t = THEMES[themeKey];
-    if (profile.coins >= t.price && !profile.unlockedThemes.includes(themeKey)) {
-      saveProfile({
-        ...profile,
-        coins: profile.coins - t.price,
-        unlockedThemes: [...profile.unlockedThemes, themeKey]
-      });
-      showToast(`Unlocked ${t.name}!`);
-    } else {
-      showToast("Not enough Kani Coins.");
-    }
+  const buyTheme = () => {
+    window.location.assign('/shop');
   };
 
   const shareResult = () => {

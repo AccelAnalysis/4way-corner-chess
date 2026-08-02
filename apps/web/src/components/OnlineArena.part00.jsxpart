@@ -1,0 +1,214 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Bot,
+  Check,
+  Clock3,
+  Copy,
+  Crown,
+  DoorOpen,
+  Loader2,
+  LogIn,
+  MessageCircle,
+  Play,
+  RefreshCcw,
+  ShieldAlert,
+  Swords,
+  Users,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { auth, db, firebaseReady } from '../firebase/client';
+import {
+  COLORS,
+  COLOR_NAMES,
+  getClockSnapshot,
+  getValidMoveIndices,
+} from '../game/engine.mjs';
+
+const SYMBOLS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+const SEAT_STYLES = {
+  W: 'bg-stone-50 text-stone-900 border-stone-300',
+  B: 'bg-blue-600 text-white border-blue-300',
+  K: 'bg-stone-900 text-stone-100 border-stone-500',
+  R: 'bg-red-600 text-white border-red-300',
+};
+const QUICK_CHATS = [
+  'Attack Red 🔴', 'Attack Blue 🔵', 'Attack Black ⚫', 'Attack White ⚪',
+  'Alliance? 🤝', "Don't take my King! 🛡️", 'Oops... 😅', 'Good move! 🔥', 'Watch out! ⚠️',
+];
+
+function formatClock(value) {
+  if (value === null || value === undefined) return '∞';
+  const seconds = Math.max(0, Math.floor(value));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function messageFromError(error) {
+  return error?.message || 'The online service could not complete that action.';
+}
+
+export default function OnlineArena() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(firebaseReady);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [mode, setMode] = useState('ffa');
+  const [timeControlSeconds, setTimeControlSeconds] = useState(300);
+  const [roomCodeInput, setRoomCodeInput] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const [room, setRoom] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [nowMs, setNowMs] = useState(Date.now());
+  const aiVersionRef = useRef(null);
+  const timeoutVersionRef = useRef(null);
+
+  useEffect(() => {
+    if (!firebaseReady || !auth) return undefined;
+    let cancelled = false;
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      if (cancelled) return;
+      if (nextUser) {
+        setUser(nextUser);
+        setAuthLoading(false);
+        return;
+      }
+      try {
+        await signInAnonymously(auth);
+      } catch (signInError) {
+        setError(`Firebase sign-in failed: ${messageFromError(signInError)}`);
+        setAuthLoading(false);
+      }
+    });
+    return () => { cancelled = true; unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 500);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!user || roomCode) return;
+    const savedCode = window.localStorage.getItem('kani_online_room');
+    if (!savedCode || savedCode.length !== 6) return;
+    run(async () => {
+      const payload = await api('/api/rooms/join', { roomCode: savedCode });
+      setRoomCode(payload.code);
+      setRoomCodeInput(payload.code);
+    });
+  }, [user]);
+
+  async function api(path, body) {
+    if (!user) throw new Error('Firebase sign-in is still loading.');
+    const token = await user.getIdToken();
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.ok === false) {
+      const apiError = new Error(payload.error?.message || `Request failed with status ${response.status}.`);
+      apiError.code = payload.error?.code;
+      apiError.details = payload.error?.details;
+      throw apiError;
+    }
+    return payload;
+  }
+
+  useEffect(() => {
+    if (!roomCode || !db || !user) return undefined;
+    const roomUnsubscribe = onSnapshot(doc(db, 'rooms', roomCode), (snapshot) => {
+      if (!snapshot.exists()) {
+        setError('This room is no longer available.');
+        setRoom(null);
+        return;
+      }
+      setRoom({ id: snapshot.id, ...snapshot.data() });
+      setError('');
+    }, (snapshotError) => setError(`Room sync failed: ${messageFromError(snapshotError)}`));
+
+    const playersUnsubscribe = onSnapshot(collection(db, 'rooms', roomCode, 'players'), (snapshot) => {
+      setPlayers(snapshot.docs.map((playerDoc) => ({ id: playerDoc.id, ...playerDoc.data() })));
+    });
+
+    const chatQuery = query(collection(db, 'rooms', roomCode, 'chat'), orderBy('createdAt', 'desc'), limit(20));
+    const chatUnsubscribe = onSnapshot(chatQuery, (snapshot) => {
+      setMessages(snapshot.docs.map((messageDoc) => ({ id: messageDoc.id, ...messageDoc.data() })).reverse());
+    });
+
+    const heartbeat = window.setInterval(() => {
+      api('/api/rooms/heartbeat', { roomCode }).catch(() => {});
+    }, 20000);
+
+    window.localStorage.setItem('kani_online_room', roomCode);
+    return () => {
+      roomUnsubscribe();
+      playersUnsubscribe();
+      chatUnsubscribe();
+      window.clearInterval(heartbeat);
+    };
+  }, [roomCode, user]);
+
+  const seat = useMemo(
+    () => (room && user ? COLORS.find((candidate) => room.seats?.[candidate] === user.uid) || null : null),
+    [room, user],
+  );
+  const isHost = Boolean(room && user && room.hostUid === user.uid);
+  const playersBySeat = useMemo(
+    () => Object.fromEntries(players.map((player) => [player.seat, player])),
+    [players],
+  );
+  const game = room?.game || null;
+  const currentSeat = game ? COLORS[game.turnIndex] : null;
+  const clocks = game ? getClockSnapshot(game, nowMs) : {};
+  const validMoves = useMemo(
+    () => (game && selected !== null ? getValidMoveIndices(game, selected) : []),
+    [game, selected],
+  );
+  const canMove = Boolean(game && room?.status === 'active' && seat === currentSeat && room.seats?.[currentSeat] === user?.uid && !busy);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [game?.version]);
+
+  useEffect(() => {
+    if (!game || room?.status !== 'active' || !currentSeat || room.seats?.[currentSeat]) return;
+    if (!String(room.playerTypes?.[currentSeat] || '').startsWith('ai')) return;
+    if (aiVersionRef.current === game.version) return;
+    aiVersionRef.current = game.version;
+    const timer = window.setTimeout(() => {
+      api('/api/rooms/ai-move', { roomCode, expectedVersion: game.version }).catch((aiError) => {
+        if (aiError.code !== 'STALE_GAME_VERSION') setError(messageFromError(aiError));
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [game?.version, currentSeat, room?.status, roomCode]);
+
+  useEffect(() => {
+    if (!game || game.status !== 'active' || game.timeControlSeconds === null) return;
+    if (clocks[currentSeat] !== 0 || timeoutVersionRef.current === game.version) return;
+    timeoutVersionRef.current = game.version;
+    api('/api/rooms/timeout', { roomCode, expectedVersion: game.version }).catch((timeoutError) => {
+      if (!['CLOCK_RUNNING', 'STALE_GAME_VERSION'].includes(timeoutError.code)) setError(messageFromError(timeoutError));
+    });
+  }, [game?.version, clocks[currentSeat], currentSeat, roomCode]);
+
+  async function run(action) {
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (actionError) {
+      setError(messageFromError(actionError));
+    } finally {
+      setBusy(false);
+    }
+  }
+

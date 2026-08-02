@@ -1,0 +1,213 @@
+  function createRoom() {
+    run(async () => {
+      const payload = await api('/api/rooms/create', { mode, timeControlSeconds, centerPawns: false });
+      setRoomCode(payload.code);
+      setRoomCodeInput(payload.code);
+    });
+  }
+
+  function joinRoom() {
+    run(async () => {
+      const normalized = roomCodeInput.trim().toUpperCase();
+      const payload = await api('/api/rooms/join', { roomCode: normalized });
+      setRoomCode(payload.code);
+    });
+  }
+
+  function toggleReady() {
+    if (!seat) return;
+    run(() => api('/api/rooms/ready', { roomCode, ready: !room?.ready?.[seat] }));
+  }
+
+  function startMatch() {
+    run(() => api('/api/rooms/start', { roomCode, fillWithAI: true }));
+  }
+
+  function clickSquare(index) {
+    if (!canMove || !game) return;
+    const piece = game.board[index];
+    if (selected === null) {
+      if (piece && (game.controlled?.[seat] || []).includes(piece.color)) setSelected(index);
+      return;
+    }
+    if (selected === index) {
+      setSelected(null);
+      return;
+    }
+    if (validMoves.includes(index)) {
+      const from = selected;
+      setSelected(null);
+      run(() => api('/api/rooms/move', {
+        roomCode,
+        from,
+        to: index,
+        promotion: 'q',
+        expectedVersion: game.version,
+      }));
+      return;
+    }
+    if (piece && (game.controlled?.[seat] || []).includes(piece.color)) setSelected(index);
+    else setSelected(null);
+  }
+
+  function resign() {
+    if (!game) return;
+    run(() => api('/api/rooms/resign', { roomCode, expectedVersion: game.version }));
+  }
+
+  function sendChat(message) {
+    run(() => api('/api/rooms/chat', { roomCode, message }));
+  }
+
+  function disconnect() {
+    window.localStorage.removeItem('kani_online_room');
+    setRoomCode('');
+    setRoom(null);
+    setPlayers([]);
+    setMessages([]);
+  }
+
+  if (!firebaseReady) {
+    return (
+      <main className="min-h-[calc(100svh-56px)] bg-[#120a05] p-6 text-stone-100">
+        <section className="mx-auto max-w-3xl rounded-3xl border border-amber-400/30 bg-stone-950/80 p-8 shadow-2xl">
+          <div className="mb-5 flex items-center gap-3 text-amber-300"><WifiOff size={30} /><h1 className="text-3xl font-black">Online runtime is ready for credentials</h1></div>
+          <p className="leading-7 text-stone-300">The multiplayer client, authoritative move API, seat assignment, ready checks, reconnect path, clocks, AI fill seats, quick chat, resignation, and Firestore listeners are deployed. This environment has no Kani Firebase web configuration, so it correctly refuses to create an insecure room.</p>
+          <div className="mt-6 rounded-2xl border border-stone-700 bg-black/30 p-5 text-sm text-stone-300">
+            Configure the documented <code>NEXT_PUBLIC_FIREBASE_*</code> values plus Firebase Admin credentials in Vercel, enable Anonymous Authentication, deploy the included Firestore rules, and this page becomes active without another code change.
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (authLoading) {
+    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#120a05] text-amber-300"><Loader2 className="animate-spin" size={44} /></main>;
+  }
+
+  if (!roomCode) {
+    return (
+      <main className="min-h-[calc(100svh-56px)] bg-[radial-gradient(circle_at_top,#3e2723,#120a05_65%)] p-5 text-stone-100">
+        <section className="mx-auto max-w-5xl py-10">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-amber-300/50 bg-amber-300/10 text-amber-300"><Wifi size={32} /></div>
+            <h1 className="text-4xl font-black">Online Kani Rooms</h1>
+            <p className="mt-2 text-stone-300">Private room codes, two to four human players, and server-controlled legal moves.</p>
+          </div>
+          {error && <div className="mb-5 rounded-xl border border-red-400/40 bg-red-950/60 p-4 text-red-100">{error}</div>}
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="rounded-3xl border border-amber-400/30 bg-stone-950/75 p-6 shadow-2xl">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-black text-amber-300"><Crown /> Create a room</h2>
+              <label className="mb-2 block text-xs font-black uppercase tracking-widest text-stone-400">Mode</label>
+              <select value={mode} onChange={(event) => setMode(event.target.value)} className="mb-4 w-full rounded-xl border border-stone-600 bg-stone-900 p-3">
+                <option value="ffa">Free for all</option><option value="teams">Teams</option><option value="blitz">Blitz</option>
+              </select>
+              <label className="mb-2 block text-xs font-black uppercase tracking-widest text-stone-400">Clock</label>
+              <select value={timeControlSeconds ?? 'unlimited'} onChange={(event) => setTimeControlSeconds(event.target.value === 'unlimited' ? null : Number(event.target.value))} className="mb-5 w-full rounded-xl border border-stone-600 bg-stone-900 p-3" disabled={mode === 'blitz'}>
+                <option value="60">1 minute</option><option value="180">3 minutes</option><option value="300">5 minutes</option><option value="unlimited">Unlimited</option>
+              </select>
+              <button onClick={createRoom} disabled={busy || !user} className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 font-black text-stone-950 disabled:opacity-50">
+                {busy ? <Loader2 className="animate-spin" /> : <DoorOpen />} Create private room
+              </button>
+            </div>
+            <div className="rounded-3xl border border-blue-400/30 bg-stone-950/75 p-6 shadow-2xl">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-black text-blue-300"><LogIn /> Join a room</h2>
+              <label className="mb-2 block text-xs font-black uppercase tracking-widest text-stone-400">Six-character code</label>
+              <input value={roomCodeInput} onChange={(event) => setRoomCodeInput(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} placeholder="ABC234" className="mb-5 w-full rounded-xl border border-stone-600 bg-stone-900 p-4 text-center text-2xl font-black tracking-[0.35em]" />
+              <button onClick={joinRoom} disabled={busy || roomCodeInput.length !== 6 || !user} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 font-black text-white disabled:opacity-50">
+                {busy ? <Loader2 className="animate-spin" /> : <Users />} Join room
+              </button>
+              <p className="mt-4 text-xs text-stone-400">Guest identity: {user?.uid.slice(0, 10)}</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!room) {
+    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#120a05] text-amber-300"><Loader2 className="animate-spin" size={44} /></main>;
+  }
+
+  if (room.status === 'lobby') {
+    const occupiedSeats = COLORS.filter((candidate) => room.seats?.[candidate]);
+    const allReady = occupiedSeats.length >= 2 && occupiedSeats.every((candidate) => room.ready?.[candidate]);
+    return (
+      <main className="min-h-[calc(100svh-56px)] bg-[radial-gradient(circle_at_top,#3e2723,#120a05_65%)] p-5 text-stone-100">
+        <section className="mx-auto max-w-4xl py-8">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-400/30 bg-stone-950/80 p-5">
+            <div><p className="text-xs font-black uppercase tracking-widest text-stone-400">Room code</p><h1 className="text-4xl font-black tracking-[0.2em] text-amber-300">{roomCode}</h1></div>
+            <div className="flex gap-2"><button onClick={() => navigator.clipboard?.writeText(roomCode)} className="rounded-xl border border-stone-600 p-3" aria-label="Copy room code"><Copy /></button><button onClick={disconnect} className="rounded-xl border border-stone-600 px-4 font-bold">Leave</button></div>
+          </div>
+          {error && <div className="mb-5 rounded-xl border border-red-400/40 bg-red-950/60 p-4 text-red-100">{error}</div>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {COLORS.map((candidate) => {
+              const player = playersBySeat[candidate];
+              const occupied = Boolean(room.seats?.[candidate]);
+              return (
+                <article key={candidate} className="rounded-2xl border border-stone-700 bg-stone-950/75 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3"><span className={`grid h-11 w-11 place-items-center rounded-full border-2 text-2xl ${SEAT_STYLES[candidate]}`}>♚</span><div><h2 className="font-black">{COLOR_NAMES[candidate]}</h2><p className="text-xs text-stone-400">{occupied ? player?.displayName || 'Connected player' : 'AI fills at start'}</p></div></div>
+                    {occupied ? <span className={`rounded-full px-2 py-1 text-xs font-black ${room.ready?.[candidate] ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>{room.ready?.[candidate] ? 'READY' : 'WAITING'}</span> : <Bot className="text-stone-500" />}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button onClick={toggleReady} disabled={!seat || busy} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-4 font-black text-stone-950 disabled:opacity-50"><Check /> {room.ready?.[seat] ? 'Set not ready' : 'Ready up'}</button>
+            {isHost ? <button onClick={startMatch} disabled={!allReady || busy} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-4 font-black text-stone-950 disabled:opacity-40"><Play /> Start with AI fill</button> : <div className="flex flex-1 items-center justify-center rounded-xl border border-stone-700 bg-stone-950/60 p-4 font-bold text-stone-300">Host starts when everyone is ready.</div>}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const currentName = game?.winner || COLOR_NAMES[currentSeat] || 'Complete';
+  return (
+    <main className="min-h-[calc(100svh-56px)] bg-[radial-gradient(circle_at_top,#2e1c13,#090605_70%)] p-3 text-stone-100 sm:p-5">
+      <section className="mx-auto max-w-7xl">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/25 bg-stone-950/80 p-4">
+          <div><p className="text-xs font-black uppercase tracking-widest text-stone-400">Room {roomCode} · Seat {seat || 'spectator'}</p><h1 className="text-2xl font-black">{game?.status === 'complete' ? `${currentName} wins` : `${currentName} to move`}</h1></div>
+          <div className="flex items-center gap-2"><span className="rounded-full border border-stone-600 px-3 py-2 text-xs font-bold">Version {game?.version}</span><button onClick={resign} disabled={!game || game.status !== 'active' || busy} className="rounded-xl border border-red-500/50 bg-red-950/40 px-4 py-2 font-bold text-red-200 disabled:opacity-40">Resign</button></div>
+        </div>
+        {error && <div className="mb-4 rounded-xl border border-red-400/40 bg-red-950/60 p-4 text-red-100">{error}</div>}
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex flex-col items-center">
+            <div className="mb-4 grid w-full max-w-2xl grid-cols-4 gap-2">
+              {COLORS.map((candidate) => (
+                <div key={candidate} className={`rounded-xl border p-2 text-center ${candidate === currentSeat ? 'border-amber-300 bg-amber-300/10' : 'border-stone-700 bg-stone-950/60'}`}>
+                  <div className="text-xs font-black">{COLOR_NAMES[candidate]}</div><div className="mt-1 flex items-center justify-center gap-1 font-mono text-sm"><Clock3 size={13} />{formatClock(clocks[candidate])}</div>
+                </div>
+              ))}
+            </div>
+            <div className="grid aspect-square w-full max-w-[680px] grid-cols-8 overflow-hidden rounded-2xl border-[10px] border-stone-900 shadow-2xl">
+              {(game?.board || []).map((piece, index) => {
+                const row = Math.floor(index / 8); const column = index % 8;
+                const selectedSquare = selected === index; const valid = validMoves.includes(index);
+                return (
+                  <button key={index} onClick={() => clickSquare(index)} disabled={!canMove} className={`relative grid place-items-center text-[clamp(1.5rem,6vw,3.6rem)] ${(row + column) % 2 === 0 ? 'bg-[#d8c4a4]' : 'bg-[#805b3d]'} ${selectedSquare ? 'ring-4 ring-inset ring-amber-300' : ''} ${valid ? 'after:absolute after:h-3 after:w-3 after:rounded-full after:bg-emerald-400/80' : ''} disabled:cursor-default`} aria-label={`Board square ${index + 1}${piece ? ` ${COLOR_NAMES[piece.color]} ${piece.type}` : ''}`}>
+                    {piece && <span className={`grid h-[75%] w-[75%] place-items-center rounded-full border-2 shadow-lg ${SEAT_STYLES[piece.color]}`}>{SYMBOLS[piece.type]}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-center text-sm text-stone-400">{canMove ? 'Select one of your pieces, then a highlighted destination.' : game?.status === 'complete' ? 'Match complete.' : 'Waiting for the active seat.'}</p>
+          </div>
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-stone-700 bg-stone-950/75 p-4">
+              <h2 className="mb-3 flex items-center gap-2 font-black text-amber-300"><Users size={18} /> Players</h2>
+              <div className="space-y-2">{COLORS.map((candidate) => <div key={candidate} className="flex items-center justify-between rounded-lg bg-white/5 p-2 text-sm"><span>{COLOR_NAMES[candidate]}</span><span className="text-xs text-stone-400">{room.seats?.[candidate] ? playersBySeat[candidate]?.displayName || 'Human' : 'Server AI'}</span></div>)}</div>
+            </div>
+            <div className="rounded-2xl border border-stone-700 bg-stone-950/75 p-4">
+              <h2 className="mb-3 flex items-center gap-2 font-black text-blue-300"><MessageCircle size={18} /> Quick chat</h2>
+              <div className="max-h-40 space-y-2 overflow-auto rounded-xl bg-black/20 p-2 text-sm">{messages.length ? messages.map((message) => <p key={message.id}><strong>{message.seat}:</strong> {message.message}</p>) : <p className="text-stone-500">No messages yet.</p>}</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">{QUICK_CHATS.slice(4).map((message) => <button key={message} onClick={() => sendChat(message)} disabled={busy} className="rounded-lg border border-stone-700 bg-white/5 p-2 text-xs font-bold hover:bg-white/10">{message}</button>)}</div>
+            </div>
+            <button onClick={() => window.location.reload()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-600 p-3 font-bold"><RefreshCcw size={17} /> Reconnect view</button>
+          </aside>
+        </div>
+      </section>
+    </main>
+  );
+}

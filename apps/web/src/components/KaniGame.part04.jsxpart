@@ -63,10 +63,10 @@
                  Pass & Play (Local)
               </button>
               <button 
-                onClick={() => setIsOnline(true)} 
-                className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${isOnline ? 'themed-panel' : 'opacity-70 hover:opacity-100'}`}
+                onClick={() => window.location.assign('/online')} 
+                className="flex-1 py-3 text-sm font-bold rounded-lg transition-all opacity-90 hover:opacity-100"
               >
-                 Host/Join Online
+                 Secure Online Rooms
               </button>
             </div>
 
@@ -297,3 +297,4 @@
                 </div>
               </div>
             )}
+
