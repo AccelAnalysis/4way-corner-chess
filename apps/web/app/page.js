@@ -1,5 +1,5 @@
-import KaniGame from '../src/components/KaniGame';
+import FirstRunExperience from '../src/components/FirstRunExperience';
 
 export default function HomePage() {
-  return <KaniGame />;
+  return <FirstRunExperience />;
 }

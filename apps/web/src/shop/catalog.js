@@ -1,3 +1,27 @@
+export const COSMETIC_ITEM_KINDS = Object.freeze([
+  'theme',
+  'piece_skin',
+  'capture_animation',
+  'board_skin',
+  'victory_banner',
+  'profile_frame',
+  'quick_chat_pack',
+  'sound_pack',
+  'puzzle_pack',
+]);
+
+export const FORBIDDEN_GAMEPLAY_FIELDS = Object.freeze([
+  'extraMoves',
+  'extraTime',
+  'revives',
+  'piecePower',
+  'damage',
+  'undoAdvantage',
+  'matchmakingPriority',
+  'ratingBoost',
+  'winGuarantee',
+]);
+
 export const COIN_PACKS = Object.freeze({
   starter: Object.freeze({
     id: 'starter',
@@ -5,29 +29,31 @@ export const COIN_PACKS = Object.freeze({
     coins: 500,
     priceCents: 499,
     description: '500 Kani Coins for cosmetic themes and effects.',
+    badge: 'Fixed offer',
   }),
   warrior: Object.freeze({
     id: 'warrior',
     name: 'Warrior Pack',
     coins: 1200,
     priceCents: 999,
-    description: '1,200 Kani Coins, including a 20% bonus.',
-    badge: 'Most popular',
+    description: '1,200 Kani Coins, including a clearly stated 20% bonus.',
+    badge: '20% bonus',
   }),
   royal: Object.freeze({
     id: 'royal',
     name: 'Royal Pack',
     coins: 2600,
     priceCents: 1999,
-    description: '2,600 Kani Coins, including a 30% bonus.',
+    description: '2,600 Kani Coins, including a clearly stated 30% bonus.',
+    badge: '30% bonus',
   }),
   legendary: Object.freeze({
     id: 'legendary',
     name: 'Legendary Pack',
     coins: 7000,
     priceCents: 4999,
-    description: '7,000 Kani Coins, including a 40% bonus.',
-    badge: 'Best value',
+    description: '7,000 Kani Coins, including a clearly stated 40% bonus.',
+    badge: '40% bonus',
   }),
 });
 
@@ -46,6 +72,22 @@ export const DEFAULT_INVENTORY = Object.freeze([
 ]);
 
 export const WELCOME_COIN_GRANT = 200;
+
+export function validateCosmeticOnlyCatalog() {
+  for (const item of Object.values(SHOP_ITEMS)) {
+    if (!COSMETIC_ITEM_KINDS.includes(item.kind)) {
+      throw new Error(`Non-cosmetic shop item kind detected: ${item.kind}`);
+    }
+    for (const field of FORBIDDEN_GAMEPLAY_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(item, field)) {
+        throw new Error(`Gameplay-affecting field ${field} is forbidden in Kani Shop items.`);
+      }
+    }
+  }
+  return true;
+}
+
+validateCosmeticOnlyCatalog();
 
 export function getCoinPack(packId) {
   return COIN_PACKS[String(packId || '').toLowerCase()] || null;

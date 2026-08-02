@@ -196,17 +196,26 @@
 
   // --- Firebase Sync ---
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) return undefined;
+    let cancelled = false;
+    const unsubscribe = onAuthStateChanged(auth, u => {
+      if (!cancelled) setUser(u);
+    });
+
     const initAuth = async () => {
+      if (auth.currentUser) return;
       if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
         await signInWithCustomToken(auth, __initial_auth_token);
       } else {
         await signInAnonymously(auth);
       }
     };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, u => setUser(u));
-    return () => unsubscribe();
+
+    initAuth().catch((error) => console.warn('Unable to initialize optional Kani identity.', error));
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -246,19 +255,11 @@
   };
 
   const createRoom = () => {
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    setRoomCode(code);
-    setIsOnline(true);
-    setIsHost(true);
+    window.location.assign('/online');
   };
 
   const joinRoom = () => {
-    if (joinCodeInput.length > 0) {
-      setRoomCode(joinCodeInput.toUpperCase());
-      setIsOnline(true);
-      setIsHost(false);
-      setGameState('room_setup');
-    }
+    window.location.assign('/online');
   };
 
   const buyTheme = () => {
@@ -277,7 +278,7 @@
   const sendQuickChat = (msg) => {
     if (playerTypes[currentPlayer].startsWith('ai') && !isOnline) return;
     const newChat = { id: Date.now(), sender: currentPlayer, text: msg };
-    const newChats = [...chatMessages.slice(-20), newChat]; // Keep last 20
+    const newChats = [...chatMessages.slice(-20), newChat];
     setChatMessages(newChats);
     pushGameState({ chatMessages: newChats });
     setShowChatPane(true);

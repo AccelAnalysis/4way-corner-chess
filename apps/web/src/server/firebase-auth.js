@@ -68,3 +68,18 @@ export async function requireFirebaseUser(request) {
     providerIds: providers.map((provider) => provider.providerId).filter(Boolean),
   };
 }
+
+export function requireRegisteredClaims(claims, feature = 'This feature') {
+  if (claims?.isAnonymous) {
+    throw new ApiError(
+      403,
+      'REGISTERED_ACCOUNT_REQUIRED',
+      `${feature} requires a free Kani account. Local play remains available as a guest.`,
+    );
+  }
+  return claims;
+}
+
+export async function requireRegisteredFirebaseUser(request, feature) {
+  return requireRegisteredClaims(await requireFirebaseUser(request), feature);
+}

@@ -1,6 +1,6 @@
 {
   "name": "@kani/web",
-  "version": "0.2.0-alpha",
+  "version": "0.3.0-alpha",
   "private": true,
   "scripts": {
     "materialize": "node scripts/materialize-kani.mjs",
