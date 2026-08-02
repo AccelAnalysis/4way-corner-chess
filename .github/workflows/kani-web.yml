@@ -1,0 +1,28 @@
+name: Kani web build
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'vercel.json'
+      - '.github/workflows/kani-web.yml'
+  push:
+    branches:
+      - product/kani-web
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'vercel.json'
+      - '.github/workflows/kani-web.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
