@@ -7,7 +7,6 @@ export const COSMETIC_ITEM_KINDS = Object.freeze([
   'profile_frame',
   'quick_chat_pack',
   'sound_pack',
-  'puzzle_pack',
 ]);
 
 export const FORBIDDEN_GAMEPLAY_FIELDS = Object.freeze([
@@ -60,7 +59,7 @@ export const COIN_PACKS = Object.freeze({
 export const SHOP_ITEMS = Object.freeze({
   'theme:classic': Object.freeze({ id: 'theme:classic', name: 'Classic Skirmish', kind: 'theme', priceCoins: 0 }),
   'theme:medieval': Object.freeze({ id: 'theme:medieval', name: 'Medieval', kind: 'theme', priceCoins: 0 }),
-  'theme:tribal': Object.freeze({ id: 'theme:tribal', name: 'African Tribal', kind: 'theme', priceCoins: 400 }),
+  'theme:tribal': Object.freeze({ id: 'theme:tribal', name: 'African Tribal', kind: 'theme', priceCoins: 0 }),
   'theme:minimal': Object.freeze({ id: 'theme:minimal', name: 'Minimal Flat', kind: 'theme', priceCoins: 100 }),
   'theme:neon': Object.freeze({ id: 'theme:neon', name: 'Neon Grid', kind: 'theme', priceCoins: 500 }),
 });
@@ -84,6 +83,15 @@ export function validateCosmeticOnlyCatalog() {
       }
     }
   }
+
+  for (const itemId of DEFAULT_INVENTORY) {
+    const item = SHOP_ITEMS[itemId];
+    if (!item) throw new Error(`Default inventory item does not exist: ${itemId}`);
+    if (item.priceCoins !== 0) {
+      throw new Error(`Default inventory item must not also display a purchase price: ${itemId}`);
+    }
+  }
+
   return true;
 }
 

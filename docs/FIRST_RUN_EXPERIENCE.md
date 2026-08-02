@@ -31,7 +31,6 @@ The catalog accepts only these item families:
 - Profile frames
 - Quick-chat packs
 - Sound packs
-- Puzzle packs
 
 The following are explicitly forbidden from Kani Shop catalog records:
 
@@ -43,8 +42,11 @@ The following are explicitly forbidden from Kani Shop catalog records:
 - Matchmaking priority
 - Rating boosts
 - Guaranteed outcomes
+- Paid game modes, puzzles, or other gameplay content presented as cosmetics
 
-`tests/monetization.test.mjs` enforces this boundary in CI.
+Every item included by default must have a zero purchase price. CI rejects contradictory catalog entries such as an item being both included and priced.
+
+`tests/monetization.test.mjs` enforces these boundaries.
 
 ## Account activation
 
@@ -65,3 +67,4 @@ Online-room APIs, secure cosmetic operations, and Stripe Checkout reject anonymo
 - [ ] Anyone may browse the cosmetic catalog.
 - [ ] Anonymous users cannot call room, secure shop, or Checkout mutation endpoints.
 - [ ] No catalog item can contain a gameplay-power field.
+- [ ] No included item can also display a purchase price.
