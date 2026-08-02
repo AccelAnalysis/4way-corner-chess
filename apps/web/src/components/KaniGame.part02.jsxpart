@@ -1,0 +1,300 @@
+
+  const prepRoom = (mode) => {
+    setPlayMode(mode);
+    if (mode === 'blitz') setTimeControl(60);
+    else setTimeControl(300);
+    
+    if (mode === 'teams') setAllianceMode('diagonals');
+    else setAllianceMode('ffa');
+
+    setGameState('room_setup');
+  };
+
+  const setupStandardBoard = () => {
+    const newBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    INITIAL_PIECES.forEach(p => {
+      newBoard[p.r][p.c] = { type: p.type, color: p.color, id: p.id, dir: null };
+    });
+
+    if (centerPawns) {
+      newBoard[3][3] = { type: 'p', color: 'B', id: 'B-cp', dir: null }; 
+      newBoard[3][4] = { type: 'p', color: 'W', id: 'W-cp', dir: null }; 
+      newBoard[4][3] = { type: 'p', color: 'K', id: 'K-cp', dir: null }; 
+      newBoard[4][4] = { type: 'p', color: 'R', id: 'R-cp', dir: null }; 
+    }
+
+    const initControl = { W: ['W'], B: ['B'], K: ['K'], R: ['R'] };
+    
+    setBoard(newBoard);
+    setTurnIndex(0);
+    setTurnCount(0);
+    setControlled(initControl);
+    setSelected(null);
+    setValidMoves([]);
+    setWinner(null);
+    setPromotionState(null);
+    setCaptureEffects([]);
+    setChatMessages([]);
+    setMoveHistory([{ board: newBoard, controlled: initControl, turnIndex: 0 }]);
+    setActivePuzzle(null);
+    
+    const times = { W: timeControl, B: timeControl, K: timeControl, R: timeControl };
+    setTimeLeft(times);
+
+    pushGameState({
+      board: newBoard, turnIndex: 0, turnCount: 0, controlled: initControl,
+      winner: null, timeLeft: times, gameState: 'playing', playerTypes, playerThemes, centerPawns, allianceMode, theme, promotionState: null,
+      chatMessages: [], moveHistory: [{ board: newBoard, controlled: initControl, turnIndex: 0 }]
+    });
+  };
+
+  const startPuzzle = (puzzle, isDaily = false) => {
+    const initialBoard = puzzle.setup();
+    const initControl = JSON.parse(JSON.stringify(puzzle.controlled));
+    
+    setBoard(initialBoard);
+    setControlled(initControl);
+    setTurnIndex(puzzle.turnIndex);
+    setTurnCount(0);
+    setPlayerTypes(puzzle.playerTypes);
+    setPlayerThemes({ W: 'medieval', B: 'medieval', K: 'medieval', R: 'medieval' }); // Default themes for puzzle
+    setActivePuzzle({ ...puzzle, isDaily });
+    setIsOnline(false); 
+    
+    setSelected(null);
+    setValidMoves([]);
+    setWinner(null);
+    setPromotionState(null);
+    setCaptureEffects([]);
+    setChatMessages([]);
+    setMoveHistory([{ board: initialBoard, controlled: initControl, turnIndex: puzzle.turnIndex }]);
+    setTimeLeft({ W: null, B: null, K: null, R: null }); 
+    setGameState('playing');
+  };
+
+  // Replay Autoplay Hook
+  useEffect(() => {
+    if (gameState !== 'replay' || !isPlayingReplay) return;
+    const timer = setInterval(() => {
+       setReplayIndex(prev => {
+          if (prev >= moveHistory.length - 1) {
+             setIsPlayingReplay(false);
+             return prev;
+          }
+          return prev + 1;
+       });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [gameState, isPlayingReplay, moveHistory.length]);
+
+  useEffect(() => {
+    if (gameState !== 'playing' || winner || timeControl === null || promotionState || activePuzzle) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev[currentPlayer] <= 0) return prev;
+        return { ...prev, [currentPlayer]: prev[currentPlayer] - 1 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [gameState, winner, timeControl, currentPlayer, promotionState, activePuzzle]);
+
+  useEffect(() => {
+    if (gameState !== 'playing' || winner || timeControl === null || activePuzzle) return;
+    if (timeLeft[currentPlayer] === 0 && controlled[currentPlayer].length > 0) {
+      handlePlayerElimination(currentPlayer);
+    }
+  }, [timeLeft, currentPlayer, gameState, winner, timeControl, controlled, activePuzzle]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && !winner && playerTypes[currentPlayer].startsWith('ai') && controlled[currentPlayer].length > 0 && !promotionState) {
+      if (isOnline && !isHost) return; 
+      const timer = setTimeout(() => {
+        executeAIMove(playerTypes[currentPlayer]);
+      }, 750);
+      return () => clearTimeout(timer);
+    }
+  }, [currentPlayer, gameState, winner, playerTypes, board, controlled, isOnline, isHost, promotionState]);
+
+  useEffect(() => {
+    if (captureEffects.length > 0) {
+      const timer = setTimeout(() => {
+        setCaptureEffects(prev => prev.filter(e => Date.now() - e.time < 500));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [captureEffects]);
+
+  const handlePlayerElimination = (playerToEliminate) => {
+    let newControlled = { ...controlled };
+    newControlled[playerToEliminate] = []; 
+    setControlled(newControlled);
+    checkWinConditionAndAdvanceTurn(board, newControlled);
+  };
+
+  const evaluateAIMoveScore = (m, boardState, aiType) => {
+    let score = 0;
+    const target = boardState[m.r][m.c];
+    const piece = boardState[m.sr][m.sc];
+
+    let isDangerous = false;
+    for(let r=0; r<8; r++) {
+      for(let c=0; c<8; c++) {
+        let p = boardState[r][c];
+        if (p && !isAllied(currentPlayer, p.color, allianceMode)) {
+          const eMoves = getValidMoves(boardState, r, c, p.color);
+          if (eMoves.some(em => em.r === m.r && em.c === m.c)) isDangerous = true;
+        }
+      }
+    }
+
+    if (isDangerous) {
+       if (piece.type === 'k') score -= 9999; 
+       else if (aiType === 'ai_defensive') score -= 200; 
+       else if (aiType === 'ai_diplomatic') score -= 100;
+       else score -= 50; 
+    }
+
+    if (target && target.type === 'k') score += 10000;
+    else if (target) {
+        const vals = {p:10, n:30, b:30, r:50, q:90, k:1000};
+        if (aiType === 'ai_diplomatic') score -= 50; 
+        else if (aiType === 'ai_aggressive') score += vals[target.type] * 2;
+        else score += vals[target.type]; 
+    }
+
+    if (aiType === 'ai_aggressive') {
+        let minDist = 99;
+        for(let r=0; r<8; r++) {
+           for(let c=0; c<8; c++) {
+              let p = boardState[r][c];
+              if (p && p.type === 'k' && !isAllied(currentPlayer, p.color, allianceMode)) {
+                 let d = Math.abs(r - m.r) + Math.abs(c - m.c);
+                 if (d < minDist) minDist = d;
+              }
+           }
+        }
+        score -= minDist; 
+    } else if (aiType === 'ai_defensive') {
+        let myKing = null;
+        for(let r=0; r<8; r++) {
+           for(let c=0; c<8; c++) {
+              let p = boardState[r][c];
+              if (p && p.type === 'k' && p.color === piece.color) myKing = {r, c};
+           }
+        }
+        if (myKing) score -= (Math.abs(myKing.r - m.r) + Math.abs(myKing.c - m.c)); 
+    } else if (aiType === 'ai_diplomatic') {
+        let startR = (piece.color === 'B' || piece.color === 'W') ? 0 : 7;
+        let startC = (piece.color === 'B' || piece.color === 'K') ? 0 : 7;
+        score -= (Math.abs(startR - m.r) + Math.abs(startC - m.c)); 
+    }
+
+    score += Math.random(); 
+    return score;
+  };
+
+  const executeAIMove = (aiType) => {
+    let allMoves = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const piece = board[r][c];
+        if (piece && controlled[currentPlayer].includes(piece.color)) {
+          const moves = getValidMoves(board, r, c);
+          moves.forEach(m => {
+            const target = board[m.r][m.c];
+            allMoves.push({
+              sr: r, sc: c, r: m.r, c: m.c,
+              isCapture: !!target,
+              isKingCapture: target && target.type === 'k'
+            });
+          });
+        }
+      }
+    }
+
+    if (allMoves.length > 0) {
+      allMoves.forEach(m => m.score = evaluateAIMoveScore(m, board, aiType));
+      allMoves.sort((a, b) => b.score - a.score);
+      const chosenMove = allMoves[0];
+      executeMove(chosenMove.sr, chosenMove.sc, chosenMove.r, chosenMove.c);
+    } else {
+      handlePlayerElimination(currentPlayer);
+    }
+  };
+
+  const handleSquareClick = (r, c) => {
+    if (winner || gameState !== 'playing' || playerTypes[currentPlayer].startsWith('ai') || promotionState) return;
+    const clickedPiece = board[r][c];
+    const isCurrentPlayerPiece = clickedPiece && controlled[currentPlayer].includes(clickedPiece.color);
+
+    if (selected) {
+      if (selected.r === r && selected.c === c) {
+        setSelected(null);
+        setValidMoves([]);
+        return;
+      }
+      const isValidMove = validMoves.some(m => m.r === r && m.c === c);
+
+      if (isValidMove) {
+        executeMove(selected.r, selected.c, r, c);
+      } else if (isCurrentPlayerPiece) {
+        setSelected({ r, c });
+        setValidMoves(getValidMoves(board, r, c));
+      } else {
+        setSelected(null);
+        setValidMoves([]);
+      }
+    } else {
+      if (isCurrentPlayerPiece) {
+        setSelected({ r, c });
+        setValidMoves(getValidMoves(board, r, c));
+      }
+    }
+  };
+
+  const executeMove = (sr, sc, r, c) => {
+    const newBoard = board.map(row => [...row]);
+    const movingPiece = { ...newBoard[sr][sc] }; 
+    const targetPiece = newBoard[r][c];
+    let newControlled = { ...controlled };
+
+    if (movingPiece.type === 'p' && !movingPiece.dir) {
+      movingPiece.dir = [r - sr, c - sc];
+    }
+
+    if (targetPiece) {
+      setCaptureEffects(prev => [...prev, { id: Math.random(), r, c, time: Date.now() }]);
+
+      if (targetPiece.type === 'k') {
+        const defeatedColor = targetPiece.color;
+        const attackerColor = movingPiece.color;
+
+        newControlled[attackerColor] = [
+          ...new Set([...newControlled[attackerColor], ...newControlled[defeatedColor]])
+        ];
+        newControlled[defeatedColor] = []; 
+
+        for (let i = 0; i < BOARD_SIZE; i++) {
+          for (let j = 0; j < BOARD_SIZE; j++) {
+            if (newBoard[i][j] && newBoard[i][j].color === defeatedColor) {
+              newBoard[i][j] = { ...newBoard[i][j], color: attackerColor };
+            }
+          }
+        }
+      }
+    }
+
+    let isPromotion = false;
+    if (movingPiece.type === 'p') {
+      if (movingPiece.color === 'B' && (r === 7 || c === 7)) isPromotion = true;
+      if (movingPiece.color === 'W' && (r === 7 || c === 0)) isPromotion = true;
+      if (movingPiece.color === 'K' && (r === 0 || c === 7)) isPromotion = true;
+      if (movingPiece.color === 'R' && (r === 0 || c === 0)) isPromotion = true;
+    }
+
+    newBoard[r][c] = movingPiece;
+    newBoard[sr][sc] = null;
+    setSelected(null);
+    setValidMoves([]);
+
+    if (isPromotion) {
