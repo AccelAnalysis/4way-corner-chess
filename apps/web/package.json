@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "materialize": "node scripts/materialize-kani.mjs",
+    "predev": "npm run materialize",
     "dev": "next dev",
+    "prebuild": "npm run materialize",
     "build": "next build",
     "start": "next start"
   },
