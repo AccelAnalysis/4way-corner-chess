@@ -33,7 +33,7 @@ export async function POST(request) {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       client_reference_id: claims.uid,
-      customer_email: claims.isAnonymous ? undefined : claims.email,
+      ...(!claims.isAnonymous && claims.email ? { customer_email: claims.email } : {}),
       line_items: [{
         quantity: 1,
         price_data: {
