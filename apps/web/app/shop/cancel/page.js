@@ -1,0 +1,3 @@
+import Link from 'next/link';
+export const metadata = { title: 'Checkout cancelled · Kani' };
+export default function ShopCancelPage() { return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#120a05] p-6 text-stone-100"><section className="max-w-lg rounded-3xl border border-stone-700 bg-stone-950/80 p-8 text-center"><h1 className="text-3xl font-black">Checkout cancelled</h1><p className="my-5 text-stone-300">No payment was completed and no Kani Coins were credited.</p><Link href="/shop" className="inline-block rounded-xl bg-amber-300 px-5 py-3 font-black text-stone-950">Return to Coin Shop</Link></section></main>; }

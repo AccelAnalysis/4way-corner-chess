@@ -1,0 +1,8 @@
+.next/
+node_modules/
+.env
+.env.local
+.env.*.local
+.vercel/
+src/components/KaniGame.jsx
+src/components/OnlineArena.jsx

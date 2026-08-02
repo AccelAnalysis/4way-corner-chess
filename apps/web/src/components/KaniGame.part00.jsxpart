@@ -1,0 +1,300 @@
+"use client";
+
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Trophy, Shield, Skull, Users, Settings, Clock, Cpu, User, RotateCcw, Play, Globe, Link, Palette, Crosshair, Puzzle, Swords, Handshake, ShieldAlert, Target, ShoppingBag, Coins, Share2, Calendar, Zap, Crown, MessageSquare, SkipBack, SkipForward, Pause, FastForward, Sparkles, Castle, Flame, Sun, Tent, Axe } from 'lucide-react';
+import { signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { auth, db, appId } from '../firebase/client';
+
+const BOARD_SIZE = 8;
+const PIECE_SYMBOLS = { r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', p: '♟' };
+
+const COLORS = ['W', 'B', 'K', 'R'];
+const COLOR_NAMES = { W: 'White', B: 'Blue', K: 'Black', R: 'Red' };
+
+const QUICK_CHATS = [
+  "Attack Red 🔴", "Attack Blue 🔵", "Attack Black ⚫", "Attack White ⚪", 
+  "Alliance? 🤝", "Don't take my King! 🛡️", "Oops... 😅", "Good move! 🔥", "Watch out! ⚠️"
+];
+
+// --- WORLD-BUILDING THEME ENGINE ---
+const THEMES = {
+  medieval: {
+    name: 'Medieval', price: 0,
+    appBg: 'radial-gradient(circle at center, #3e2723 0%, #120a05 100%)',
+    panelBg: '#f4ebd8', 
+    panelBorder: '#8b5a2b',
+    borderWidth: '3px',
+    textMain: '#3e2723', 
+    textMuted: '#8b5a2b',
+    accentPrimary: '#d4af37', 
+    accentText: '#3e2723',
+    font: "'Cinzel', serif",
+    boardOuter: 'border-[12px] border-[#2d1a11] bg-[#2d1a11] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-md',
+    boardLight: 'bg-[#d2b48c] shadow-[inset_0_0_15px_rgba(0,0,0,0.15)]', 
+    boardDark: 'bg-[#8b5a2b] shadow-[inset_0_0_25px_rgba(0,0,0,0.4)]',   
+    useSvgPieces: true,
+    W: "bg-[#fff8e1] border-2 border-[#d7ccc8] shadow-md text-[#3e2723] font-serif",
+    B: "bg-[#455a64] border-2 border-[#263238] shadow-md text-[#e0f7fa] font-serif",
+    K: "bg-[#212121] border-2 border-[#000000] shadow-md text-[#d7ccc8] font-serif",
+    R: "bg-[#b71c1c] border-2 border-[#4a148c] shadow-md text-[#ffcdd2] font-serif"
+  },
+  tribal: {
+    name: 'African Tribal', price: 400,
+    appBg: 'radial-gradient(circle at center, #5c2c16 0%, #2b1104 100%)',
+    panelBg: '#e8d3b9',
+    panelBorder: '#8c4a23',
+    borderWidth: '4px',
+    textMain: '#2b1104',
+    textMuted: '#8c4a23',
+    accentPrimary: '#d97725',
+    accentText: '#ffffff',
+    font: "'Trebuchet MS', 'Lucida Sans Unicode', sans-serif",
+    boardOuter: 'border-[12px] border-[#2b1104] bg-[#2b1104] shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-sm',
+    boardLight: 'bg-[#d9b382] shadow-[inset_0_0_12px_rgba(0,0,0,0.2)]', 
+    boardDark: 'bg-[#8c4a23] shadow-[inset_0_0_20px_rgba(0,0,0,0.4)]',
+    useSvgPieces: true,
+    W: "bg-[#f4e6ce] border-[3px] border-[#8c4a23] shadow-[0_4px_6px_rgba(0,0,0,0.5)] text-[#2b1104]",
+    B: "bg-[#1a85a1] border-[3px] border-[#0c3f4d] shadow-[0_4px_6px_rgba(0,0,0,0.5)] text-[#e0f7fa]",
+    K: "bg-[#2b2b2b] border-[3px] border-[#000000] shadow-[0_4px_6px_rgba(0,0,0,0.5)] text-[#e5e5e5]",
+    R: "bg-[#bd3a24] border-[3px] border-[#5e1307] shadow-[0_4px_6px_rgba(0,0,0,0.5)] text-[#f9e0df]"
+  },
+  classic: {
+    name: 'Classic Skirmish', price: 0,
+    appBg: '#f1f5f9',
+    panelBg: '#ffffff',
+    panelBorder: '#e2e8f0',
+    borderWidth: '1px',
+    textMain: '#1e293b',
+    textMuted: '#64748b',
+    accentPrimary: '#10b981',
+    accentText: '#ffffff',
+    font: "system-ui, sans-serif",
+    boardOuter: 'border-[8px] border-slate-800 bg-slate-800 shadow-2xl rounded-xl',
+    boardLight: 'bg-[#e2e8f0]',
+    boardDark: 'bg-[#94a3b8]',
+    useSvgPieces: false,
+    W: "bg-gradient-to-br from-slate-50 to-slate-200 border-2 border-slate-300 shadow-[0_4px_6px_rgba(0,0,0,0.15)] text-slate-800",
+    B: "bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-blue-300 shadow-[0_4px_6px_rgba(0,0,0,0.3)] text-white",
+    K: "bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-slate-600 shadow-[0_4px_6px_rgba(0,0,0,0.4)] text-slate-200",
+    R: "bg-gradient-to-br from-red-500 to-red-700 border-2 border-red-400 shadow-[0_4px_6px_rgba(0,0,0,0.3)] text-white"
+  },
+  minimal: {
+    name: 'Minimal Flat', price: 100,
+    appBg: '#f8fafc',
+    panelBg: '#ffffff',
+    panelBorder: '#e2e8f0',
+    borderWidth: '1px',
+    textMain: '#334155',
+    textMuted: '#94a3b8',
+    accentPrimary: '#3b82f6',
+    accentText: '#ffffff',
+    font: "system-ui, sans-serif",
+    boardOuter: 'border-[2px] border-slate-200 bg-white shadow-sm rounded-xl',
+    boardLight: 'bg-slate-50', 
+    boardDark: 'bg-slate-200',
+    useSvgPieces: false,
+    W: "bg-white text-slate-800 shadow-sm border border-slate-200",
+    B: "bg-blue-500 text-white shadow-sm border border-blue-600",
+    K: "bg-slate-800 text-white shadow-sm border border-slate-900",
+    R: "bg-red-500 text-white shadow-sm border border-red-600"
+  },
+  neon: {
+    name: 'Neon Grid', price: 500,
+    appBg: '#020617',
+    panelBg: '#0f172a',
+    panelBorder: '#3b0764',
+    borderWidth: '2px',
+    textMain: '#e2e8f0',
+    textMuted: '#94a3b8',
+    accentPrimary: '#a855f7',
+    accentText: '#ffffff',
+    font: "system-ui, sans-serif",
+    boardOuter: 'border-[4px] border-purple-600 bg-slate-950 shadow-[0_0_20px_rgba(147,51,234,0.3)] rounded-xl',
+    boardLight: 'bg-slate-800', 
+    boardDark: 'bg-slate-900',
+    useSvgPieces: false,
+    W: "bg-slate-900 border-[2px] border-white text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] shadow-[inset_0_0_10px_rgba(255,255,255,0.4)]",
+    B: "bg-slate-900 border-[2px] border-cyan-400 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] shadow-[inset_0_0_10px_rgba(34,211,238,0.4)]",
+    K: "bg-slate-900 border-[2px] border-purple-500 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] shadow-[inset_0_0_10px_rgba(168,85,247,0.4)]",
+    R: "bg-slate-900 border-[2px] border-pink-500 text-pink-500 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)] shadow-[inset_0_0_10px_rgba(236,72,153,0.4)]"
+  }
+};
+
+const TIME_OPTIONS = [
+  { label: '1 min (Blitz)', value: 60 },
+  { label: '3 min', value: 180 },
+  { label: '5 min', value: 300 },
+  { label: 'Unlimited', value: null },
+];
+
+const INITIAL_PIECES = [
+  { r: 0, c: 0, type: 'k', color: 'B', id: 'B-k' }, { r: 0, c: 1, type: 'b', color: 'B', id: 'B-b1' }, { r: 1, c: 0, type: 'b', color: 'B', id: 'B-b2' },
+  { r: 0, c: 2, type: 'r', color: 'B', id: 'B-r1' }, { r: 1, c: 1, type: 'q', color: 'B', id: 'B-q' }, { r: 2, c: 0, type: 'r', color: 'B', id: 'B-r2' },
+  { r: 0, c: 3, type: 'n', color: 'B', id: 'B-n1' }, { r: 1, c: 2, type: 'p', color: 'B', id: 'B-p1' }, { r: 2, c: 1, type: 'p', color: 'B', id: 'B-p2' }, { r: 3, c: 0, type: 'n', color: 'B', id: 'B-n2' },
+  
+  { r: 0, c: 7, type: 'k', color: 'W', id: 'W-k' }, { r: 0, c: 6, type: 'b', color: 'W', id: 'W-b1' }, { r: 1, c: 7, type: 'b', color: 'W', id: 'W-b2' },
+  { r: 0, c: 5, type: 'r', color: 'W', id: 'W-r1' }, { r: 1, c: 6, type: 'q', color: 'W', id: 'W-q' }, { r: 2, c: 7, type: 'r', color: 'W', id: 'W-r2' },
+  { r: 0, c: 4, type: 'n', color: 'W', id: 'W-n1' }, { r: 1, c: 5, type: 'p', color: 'W', id: 'W-p1' }, { r: 2, c: 6, type: 'p', color: 'W', id: 'W-p2' }, { r: 3, c: 7, type: 'n', color: 'W', id: 'W-n2' },
+  
+  { r: 7, c: 0, type: 'k', color: 'K', id: 'K-k' }, { r: 7, c: 1, type: 'b', color: 'K', id: 'K-b1' }, { r: 6, c: 0, type: 'b', color: 'K', id: 'K-b2' },
+  { r: 7, c: 2, type: 'r', color: 'K', id: 'K-r1' }, { r: 6, c: 1, type: 'q', color: 'K', id: 'K-q' }, { r: 5, c: 0, type: 'r', color: 'K', id: 'K-r2' },
+  { r: 7, c: 3, type: 'n', color: 'K', id: 'K-n1' }, { r: 6, c: 2, type: 'p', color: 'K', id: 'K-p1' }, { r: 5, c: 1, type: 'p', color: 'K', id: 'K-p2' }, { r: 4, c: 0, type: 'n', color: 'K', id: 'K-n2' },
+  
+  { r: 7, c: 7, type: 'k', color: 'R', id: 'R-k' }, { r: 7, c: 6, type: 'b', color: 'R', id: 'R-b1' }, { r: 6, c: 7, type: 'b', color: 'R', id: 'R-b2' },
+  { r: 7, c: 5, type: 'r', color: 'R', id: 'R-r1' }, { r: 6, c: 6, type: 'q', color: 'R', id: 'R-q' }, { r: 5, c: 7, type: 'r', color: 'R', id: 'R-r2' },
+  { r: 7, c: 4, type: 'n', color: 'R', id: 'R-n1' }, { r: 6, c: 5, type: 'p', color: 'R', id: 'R-p1' }, { r: 5, c: 6, type: 'p', color: 'R', id: 'R-p2' }, { r: 4, c: 7, type: 'n', color: 'R', id: 'R-n2' },
+];
+
+const PUZZLES = [
+  {
+    id: 'p1', title: 'The Quick Strike', description: 'Mate the Blue King in 1 turn.', reward: 50,
+    setup: () => {
+      const b = Array(8).fill(null).map(() => Array(8).fill(null));
+      b[0][7] = { type: 'k', color: 'W', id: 'W-k' }; 
+      b[2][5] = { type: 'n', color: 'W', id: 'W-n1' }; 
+      b[0][4] = { type: 'k', color: 'B', id: 'B-k' }; 
+      b[7][7] = { type: 'k', color: 'R', id: 'R-k' };
+      b[7][0] = { type: 'k', color: 'K', id: 'K-k' };
+      return b;
+    },
+    controlled: { W: ['W'], B: ['B'], K: ['K'], R: ['R'] },
+    turnIndex: 0, 
+    playerTypes: { W: 'human', B: 'ai_defensive', K: 'ai_diplomatic', R: 'ai_diplomatic' },
+    checkObj: (board, controlled, turnCount) => {
+      if (!controlled.B.includes('B')) return 'W'; 
+      if (turnCount > 1) return 'Loss';
+      return null;
+    }
+  },
+  {
+    id: 'p2', title: 'Survive the Horde', description: 'Survive 4 full rounds against aggressive knights.', reward: 100,
+    setup: () => {
+      const b = Array(8).fill(null).map(() => Array(8).fill(null));
+      b[3][3] = { type: 'k', color: 'W', id: 'W-k' }; 
+      b[3][4] = { type: 'p', color: 'W', id: 'W-p1' }; 
+      b[4][3] = { type: 'p', color: 'W', id: 'W-p2' }; 
+      b[1][1] = { type: 'n', color: 'R', id: 'R-n1' };
+      b[1][6] = { type: 'n', color: 'R', id: 'R-n2' };
+      b[6][1] = { type: 'n', color: 'K', id: 'K-n1' };
+      b[6][6] = { type: 'n', color: 'K', id: 'K-n2' };
+      b[0][0] = { type: 'k', color: 'B', id: 'B-k' }; 
+      return b;
+    },
+    controlled: { W: ['W'], B: ['B'], K: ['K'], R: ['R'] },
+    turnIndex: 0,
+    playerTypes: { W: 'human', B: 'ai_diplomatic', K: 'ai_aggressive', R: 'ai_aggressive' },
+    checkObj: (board, controlled, turnCount) => {
+      if (!controlled.W.includes('W')) return 'Loss'; 
+      if (turnCount >= 16) return 'W'; 
+      return null;
+    }
+  },
+  {
+    id: 'p3', title: 'Revenge of the Fallen', description: 'Your White King is dead, but you assimilated Black. Win the game.', reward: 150,
+    setup: () => {
+      const b = Array(8).fill(null).map(() => Array(8).fill(null));
+      b[7][0] = { type: 'k', color: 'W', id: 'K-k-assimilated' }; 
+      b[6][1] = { type: 'q', color: 'W', id: 'K-q' };
+      b[7][2] = { type: 'r', color: 'W', id: 'K-r1' };
+      b[7][7] = { type: 'k', color: 'R', id: 'R-k' };
+      b[6][6] = { type: 'q', color: 'R', id: 'R-q' };
+      b[5][7] = { type: 'r', color: 'R', id: 'R-r' };
+      return b;
+    },
+    controlled: { W: ['W', 'K'], B: [], K: [], R: ['R'] },
+    turnIndex: 0,
+    playerTypes: { W: 'human', B: 'ai_diplomatic', K: 'ai_diplomatic', R: 'ai_defensive' },
+    checkObj: (board, controlled, turnCount) => {
+      if (controlled.W.length === 0) return 'Loss';
+      if (controlled.R.length === 0) return 'W';
+      return null;
+    }
+  },
+  {
+    id: 'p4', title: 'Pawn\'s Journey', description: 'Promote your pawn to win. Avoid the Rook!', reward: 75,
+    setup: () => {
+      const b = Array(8).fill(null).map(() => Array(8).fill(null));
+      b[0][7] = { type: 'k', color: 'W', id: 'W-k' }; 
+      b[6][1] = { type: 'p', color: 'W', id: 'W-p1', dir: [1, -1] }; 
+      
+      b[7][7] = { type: 'k', color: 'R', id: 'R-k' };
+      b[7][4] = { type: 'r', color: 'R', id: 'R-r1' }; 
+      return b;
+    },
+    controlled: { W: ['W'], B: [], K: [], R: ['R'] },
+    turnIndex: 0,
+    playerTypes: { W: 'human', B: 'ai_diplomatic', K: 'ai_diplomatic', R: 'ai_defensive' },
+    checkObj: (board, controlled, turnCount, promotionState) => {
+      if (controlled.W.length === 0) return 'Loss';
+      let hasQueen = false;
+      board.forEach(row => row.forEach(p => { if (p && p.color === 'W' && p.type === 'q') hasQueen = true; }));
+      if (hasQueen || (promotionState && promotionState.color === 'W')) return 'W'; 
+      return null;
+    }
+  }
+];
+
+// --- SVG Piece Renderer ---
+const GamePiece = ({ type, color, themeObj }) => {
+  if (!themeObj.useSvgPieces) {
+     return (
+       <div className={`w-11 h-11 rounded-full flex items-center justify-center text-3xl font-bold ${themeObj[color]}`}>
+         <span className="drop-shadow-sm pb-1">{PIECE_SYMBOLS[type]}</span>
+       </div>
+     );
+  }
+
+  let c;
+  if (themeObj.name === 'African Tribal') {
+    const tribalColors = {
+      W: { fill: '#f4e6ce', stroke: '#8c4a23' }, 
+      B: { fill: '#1a85a1', stroke: '#0c3f4d' }, 
+      K: { fill: '#2b2b2b', stroke: '#000000' }, 
+      R: { fill: '#bd3a24', stroke: '#5e1307' }, 
+    };
+    c = tribalColors[color];
+  } else {
+    const medievalColors = {
+      W: { fill: '#fdfdfc', stroke: '#b8860b' }, 
+      B: { fill: '#3b82f6', stroke: '#1e3a8a' }, 
+      K: { fill: '#27272a', stroke: '#000000' }, 
+      R: { fill: '#ef4444', stroke: '#7f1d1d' }, 
+    };
+    c = medievalColors[color];
+  }
+  
+  const getIcon = () => {
+     if (themeObj.name === 'African Tribal') {
+         switch(type) {
+           case 'k': return <Crown size={38} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+           case 'q': return <Sun size={36} strokeWidth={2} fill={c.fill} color={c.stroke} />;
+           case 'r': return <Tent size={34} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+           case 'b': return <Flame size={32} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+           case 'n': return <Axe size={32} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+           case 'p': return <Shield size={28} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+           default: return null;
+         }
+     }
+     switch(type) {
+       case 'k': return <Crown size={38} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+       case 'q': return <Sparkles size={34} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+       case 'r': return <Castle size={32} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+       case 'b': return <Flame size={32} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+       case 'n': return <Swords size={32} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+       case 'p': return <Shield size={26} strokeWidth={1.5} fill={c.fill} color={c.stroke} />;
+       default: return null;
+     }
+  }
+
+  return (
+     <div className="drop-shadow-[0_6px_4px_rgba(0,0,0,0.6)]">
+        {getIcon()}
+     </div>
+  );
+};
+
+export default function App() {
+  const [profile, setProfile] = useState({
+    coins: 200,
+    elo: { ffa: 1200, teams: 1200, blitz: 1200 },
