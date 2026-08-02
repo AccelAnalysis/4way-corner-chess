@@ -1,5 +1,4 @@
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 let cachedAdmin = null;
@@ -50,7 +49,6 @@ export function getFirebaseAdmin() {
 
   cachedAdmin = {
     app,
-    auth: getAuth(app),
     db: firestore,
   };
   return cachedAdmin;
