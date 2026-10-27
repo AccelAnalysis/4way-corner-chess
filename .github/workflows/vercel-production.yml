@@ -1,0 +1,75 @@
+name: Deploy KANI to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'vercel.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vercel-production.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kani-vercel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify the exact existing Vercel project is configured
+        shell: bash
+        run: |
+          missing=()
+          for key in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [[ -z "${!key}" ]]; then missing+=("$key"); fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing GitHub Actions repository secrets: ${missing[*]}. No Vercel deployment was attempted."
+            echo "Set these three secrets for the existing kani-4way-corner-chess project; do not create a different project."
+            exit 1
+          fi
+      - name: Test the KANI revision
+        run: |
+          npm install
+          npm test
+          npm run build
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull existing production project configuration
+        run: vercel pull --yes --environment=production
+      - name: Build the Vercel deployment
+        run: vercel build --prod
+      - name: Deploy and assign existing production domain
+        id: deploy
+        shell: bash
+        run: |
+          url="$(vercel deploy --prebuilt --prod --archive=tgz)"
+          echo "Deployment URL: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Verify the deployed KANI and PWA endpoints
+        shell: bash
+        run: |
+          origin="${{ steps.deploy.outputs.url }}"
+          for path in "/" "/manifest.webmanifest" "/sw.js" "/offline" "/icons/192.png" "/icons/512.png"; do
+            curl --fail --location --silent --show-error --retry 3 --retry-delay 2 "$origin$path" -o /tmp/kani-response
+            if [[ "$path" == "/" ]] && ! grep -q 'Capture the king' /tmp/kani-response; then
+              echo "::error::The deployment did not render KANI's redesigned game landing screen."
+              exit 1
+            fi
+            echo "Verified $path"
+          done
