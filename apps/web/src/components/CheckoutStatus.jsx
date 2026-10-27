@@ -13,7 +13,7 @@ export default function CheckoutStatus() {
   useEffect(() => {
     if (!firebaseReady || !auth) { setStatus('unavailable'); setMessage('Purchases are unavailable.'); return undefined; }
     const sessionId = new URL(window.location.href).searchParams.get('session_id');
-    if (!sessionId) { setStatus('error'); setMessage('We couldn't find that purchase.'); return undefined; }
+    if (!sessionId) { setStatus('error'); setMessage('We could not find that purchase.'); return undefined; }
 
     let attempts = 0;
     let timer = null;
