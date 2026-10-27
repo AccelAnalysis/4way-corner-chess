@@ -167,6 +167,9 @@
     );
   }
 
+  // Pieces remain mounted under stable IDs as their board position changes.
+  // The browser interpolates their translate3d positions even for remote moves.
+  const visibleMove = game ? lastMoveVisual(game.lastMove, game.board) : null;
   const currentName = game?.winner || COLOR_NAMES[currentSeat] || 'Complete';
   return (
     <main className="min-h-[calc(100svh-56px)] bg-[radial-gradient(circle_at_top,#2e1c13,#090605_70%)] p-3 text-stone-100 sm:p-5">
@@ -201,16 +204,39 @@
                 </div>
               ))}
             </div>
-            <div className="grid aspect-square w-full max-w-[680px] grid-cols-8 overflow-hidden rounded-2xl border-[10px] border-stone-900 shadow-2xl">
-              {(game?.board || []).map((piece, index) => {
-                const row = Math.floor(index / 8); const column = index % 8;
-                const selectedSquare = selected === index; const valid = validMoves.includes(index);
-                return (
-                  <button key={index} onClick={() => clickSquare(index)} disabled={!canMove} className={`relative grid place-items-center text-[clamp(1.5rem,6vw,3.6rem)] ${(row + column) % 2 === 0 ? 'bg-[#d8c4a4]' : 'bg-[#805b3d]'} ${selectedSquare ? 'ring-4 ring-inset ring-amber-300' : ''} ${valid ? 'after:absolute after:h-3 after:w-3 after:rounded-full after:bg-emerald-400/80' : ''} disabled:cursor-default`} aria-label={`Board square ${index + 1}${piece ? ` ${COLOR_NAMES[piece.color]} ${piece.type}` : ''}`}>
-                    {piece && <span className={`grid h-[75%] w-[75%] place-items-center rounded-full border-2 shadow-lg ${SEAT_STYLES[piece.color]}`}>{SYMBOLS[piece.type]}</span>}
-                  </button>
-                );
-              })}
+            <div className="relative aspect-square w-full max-w-[680px] overflow-hidden rounded-2xl border-[10px] border-stone-900 shadow-2xl" aria-label="KANI four-way chess board">
+              <div className="absolute inset-0 grid grid-cols-8">
+                {(game?.board || []).map((piece, index) => {
+                  const row = Math.floor(index / 8);
+                  const column = index % 8;
+                  const selectedSquare = selected === index;
+                  const valid = validMoves.includes(index);
+                  const lastSource = visibleMove?.from === index;
+                  const lastDestination = visibleMove?.to === index;
+                  return (
+                    <button key={index} onClick={() => clickSquare(index)} disabled={!canMove}
+                      className={`relative grid place-items-center text-[clamp(1.5rem,6vw,3.6rem)] ${(row + column) % 2 === 0 ? 'bg-[#d8c4a4]' : 'bg-[#805b3d]'} ${selectedSquare ? 'ring-4 ring-inset ring-amber-300' : ''} ${valid ? 'after:absolute after:h-3 after:w-3 after:rounded-full after:bg-emerald-400/80' : ''} disabled:cursor-default`}
+                      aria-label={`Board square ${index + 1}${piece ? ` ${COLOR_NAMES[piece.color]} ${piece.type}` : ''}`}>
+                      {(lastSource || lastDestination) && (
+                        <span className={`pointer-events-none absolute inset-0 ${lastDestination ? 'bg-amber-300/35 ring-2 ring-inset ring-amber-400/70' : 'bg-amber-200/20'}`} aria-hidden="true" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* A separate keyed piece layer lets CSS animate movement between squares.
+                  The square buttons stay interactive underneath this pointer-safe layer. */}
+              <div className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
+                {(game?.board || []).map((piece, index) => piece ? (
+                  <div key={piece.id || `piece-${index}`}
+                    className="kani-board-piece absolute left-0 top-0 grid h-[12.5%] w-[12.5%] place-items-center text-[clamp(1.5rem,6vw,3.6rem)]"
+                    style={{ transform: pieceTransform(index) }}>
+                    <span className={`grid h-[75%] w-[75%] place-items-center rounded-full border-2 shadow-lg ${SEAT_STYLES[piece.color]}`}>
+                      {SYMBOLS[piece.type]}
+                    </span>
+                  </div>
+                ) : null)}
+              </div>
             </div>
             <p className="mt-3 text-center text-sm text-stone-400">{canMove ? 'Select one of your pieces, then a highlighted destination.' : game?.status === 'complete' ? 'Match complete.' : 'Waiting for the active seat.'}</p>
           </div>
