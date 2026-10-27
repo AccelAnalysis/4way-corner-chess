@@ -15,6 +15,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
+/* Moving pieces are positioned independently of the 64 clickable squares.
+   Their stable piece IDs let React preserve the element when a move arrives.
+   transform uses each square's size, keeping motion responsive and GPU-friendly. */
+.kani-board-piece {
+  transition: transform 230ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
