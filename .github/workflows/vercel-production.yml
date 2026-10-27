@@ -31,7 +31,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
       - name: Verify the exact existing Vercel project is configured
         shell: bash
         run: |
@@ -46,7 +45,7 @@ jobs:
           fi
       - name: Test the KANI revision
         run: |
-          npm ci
+          npm install
           npm test
           npm run build
       - name: Install Vercel CLI
