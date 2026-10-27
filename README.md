@@ -40,12 +40,12 @@ A unique 4-player chess variant playable as both a desktop (Pygame) application 
 
 ## Game Rules
 
-- **Players**: 4 (Black, Blue, Green, Red)
-- **Starting Positions**:
-  - Player 1: Black (top-left)
-  - Player 2: Blue (top-right)
-  - Player 3: Green (bottom-right)
-  - Player 4: Red (bottom-left)
+### KANI Web Gameplay Rules (v1.0)
+
+The current Next.js KANI web game has its own versioned canonical rules. See [KANI Rules v1.0](docs/KANI_RULES_V1.md) for the definitive pawn movement, conquest, blocked-seat, turn, promotion, and draw rules. The historical Python/Pygame desktop variant below uses different pawn rules and is preserved for reference.
+
+- **Players (current web game)**: 4 (White, Blue, Black, Red)
+- **Starting positions (current web game)**: Blue top-left; White top-right; Black bottom-left; Red bottom-right.
 
 ### Objective
 Capture another player's king to take control of their remaining pieces. The game continues until only one player remains.
@@ -53,7 +53,7 @@ Capture another player's king to take control of their remaining pieces. The gam
 ### Special Rules
 - **Pawns**: On their first move, pawns can move one square in any direction. After the first move, they are locked into that direction.
 - **King Capture**: There is no check or checkmate—kings can be captured like any other piece.
-- **Turn Order**: Players take turns in clockwise order. If you capture a king, you take that player's next turn.
+- **Turn Order**: Players take turns in clockwise order. In the current KANI web rules, defeated seats are skipped; capturing a king transfers the remaining army without giving the conqueror an extra turn. (The historical prototype may behave differently.)
 - **AI/Timer (Web only)**: Optional chess clocks and computer players.
 
 ---
@@ -78,16 +78,10 @@ Capture another player's king to take control of their remaining pieces. The gam
    ```
 3. The game window will open. Play using your mouse.
 
-### Web/AI Version
-1. Open a terminal in the `web` directory:
-   ```bash
-   cd web
-   python server.py
-   ```
-2. The server will start and display local URLs (e.g., `http://localhost:8001`).
-3. Open the original or AI version in your browser:
-   - **Original:** [http://localhost:8001](http://localhost:8001)
-   - **AI Version:** [http://localhost:8001/ai](http://localhost:8001/ai)
+### KANI Next.js Version
+1. See [README-KANI.md](README-KANI.md) for the maintained web setup.
+2. Run `npm install` and `npm run dev` from the repository root.
+3. Visit `http://localhost:3000`. Online games require Firebase credentials and security rules.
 
 ---
 
