@@ -1,4 +1,4 @@
-            <div className={`relative overflow-hidden ${(winner && gameState !== 'replay') || promotionState ? 'opacity-30' : ''}`} style={{ width: '480px', height: '480px' }}>
+            <div className={`relative w-full max-w-[480px] overflow-hidden ${(winner && gameState !== 'replay') || promotionState ? 'opacity-30' : ''}`} style={{ aspectRatio: "1 / 1", width: "100%", maxWidth: "480px" }}>
               
               {/* Background Grid */}
               <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
@@ -16,7 +16,7 @@
                       key={`bg-${r}-${c}`}
                       onClick={() => { if (gameState === 'playing') handleSquareClick(r, c); }}
                       className={`
-                        w-[60px] h-[60px] relative flex items-center justify-center transition-colors duration-300
+                        w-full h-full relative flex items-center justify-center transition-colors duration-300
                         ${(playerTypes[currentPlayer] === 'human' && !winner && !promotionState && gameState === 'playing') ? 'cursor-pointer' : 'cursor-default'}
                         ${isLight ? currentTheme.boardLight : currentTheme.boardDark}
                       `}
@@ -46,9 +46,9 @@
 
               {/* Capture Animations Layer */}
               {captureEffects.map(effect => (
-                <div key={effect.id} className="absolute w-[60px] h-[60px] pointer-events-none z-20 flex items-center justify-center"
-                     style={{ transform: `translate(${effect.c * 60}px, ${effect.r * 60}px)` }}>
-                  <div className="w-14 h-14 bg-yellow-500 rounded-full animate-ping opacity-80 mix-blend-screen"></div>
+                <div key={effect.id} className="absolute h-[12.5%] w-[12.5%] pointer-events-none z-20 flex items-center justify-center"
+                     style={{ transform: pieceTransform(effect.r * BOARD_SIZE + effect.c) }}>
+                  <div className="w-[85%] h-[85%] bg-yellow-500 rounded-full animate-ping opacity-80 mix-blend-screen"></div>
                 </div>
               ))}
 
@@ -62,7 +62,7 @@
                     key={piece.id}
                     onClick={(e) => { e.stopPropagation(); if (gameState === 'playing') handleSquareClick(piece.r, piece.c); }}
                     className={`
-                      absolute w-[60px] h-[60px] flex items-center justify-center
+                      kani-responsive-piece absolute h-[12.5%] w-[12.5%] flex items-center justify-center
                       kani-board-piece z-30
                       ${(playerTypes[currentPlayer] === 'human' && !winner && !promotionState && gameState === 'playing') ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}
                       ${isSelected ? 'scale-110 -translate-y-1' : ''}

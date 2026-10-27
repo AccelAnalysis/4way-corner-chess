@@ -118,10 +118,10 @@
          </div>
       </div>
 
-      <div className="max-w-6xl w-full flex flex-col md:flex-row gap-10 items-center md:items-start justify-center">
+      <div className="max-w-6xl w-full flex flex-col md:flex-row gap-5 md:gap-8 items-center md:items-start justify-center">
         
         {/* Game Board Column */}
-        <div className="flex flex-col items-center flex-shrink-0">
+        <div className="flex w-full min-w-0 flex-col items-center md:w-auto md:flex-shrink-0">
           
           {/* Turn Flow Tracker */}
           {(!winner || gameState === 'replay') && (
@@ -148,7 +148,7 @@
             </div>
           )}
 
-          <div className={`p-4 rounded-md relative transition-colors duration-500 ${currentTheme.boardOuter}`}>
+          <div className={`relative w-full max-w-[510px] p-2 sm:p-3 transition-colors duration-500 ${currentTheme.boardOuter}`}>
             
             {/* Victory / Failure Overlay */}
             {(winner && gameState !== 'replay' && showMatchResult) && (
@@ -181,13 +181,13 @@
             {/* Promotion Overlay */}
             {promotionState && gameState !== 'replay' && showPromotionOptions && (
               <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-                <h3 className="text-3xl font-black mb-6 drop-shadow-md" style={{ fontFamily: currentTheme.font }}>Promote</h3>
-                <div className="flex gap-4 p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <h3 className="text-3xl font-black mb-6 drop-shadow-md" style={{ fontFamily: 'var(--kani-heading)' }}>Promote</h3>
+                <div className="flex gap-2 p-2 sm:gap-4 sm:p-6" style={{ background: 'rgba(255,255,255,0.1)' }}>
                   {['q', 'r', 'b', 'n'].map(type => (
                     <button 
                       key={type} 
                       onClick={() => handlePromotionSelection(type)}
-                      className={`w-20 h-20 rounded-full flex items-center justify-center hover:scale-110 hover:bg-white/20 transition-all`}
+                      className={`grid h-12 w-12 place-items-center rounded-full transition-all hover:bg-white/20 sm:h-20 sm:w-20`}
                     >
                       <GamePiece type={type} color={promotionState.color} themeObj={THEMES[playerThemes[promotionState.color]] || currentTheme} />
                     </button>
