@@ -4,7 +4,8 @@ import React from 'react';
 export const runtime = 'nodejs';
 
 export async function GET(_request, { params }) {
-  const size = Number(String(params.size || '').replace(/\.png$/, ''));
+  const { size: fileSize } = await params;
+  const size = Number(String(fileSize || '').replace(/\.png$/, ''));
   if (![180, 192, 512].includes(size)) return new Response('Not found', { status: 404 });
   const outer = Math.round(size * 0.1);
   return new ImageResponse(
