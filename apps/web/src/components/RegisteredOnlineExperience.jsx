@@ -43,26 +43,15 @@ export default function RegisteredOnlineExperience() {
 
   if (!user || user.isAnonymous) {
     return (
-      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[radial-gradient(circle_at_top,#31251d,#080706_70%)] p-5 text-stone-100">
-        <section className="w-full max-w-4xl rounded-[2rem] border border-blue-400/25 bg-stone-950/85 p-7 shadow-2xl sm:p-10">
-          <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
-            <div className="grid min-h-64 place-items-center rounded-3xl border border-blue-400/20 bg-blue-950/20">
-              <div className="text-center"><Users className="mx-auto text-blue-300" size={64} /><p className="mt-4 text-sm font-black uppercase tracking-[0.25em] text-blue-200">Online unlocked</p></div>
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">Persistent identity required</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Create a free account before entering online rooms.</h1>
-              <p className="mt-5 text-lg leading-8 text-stone-300">Online play needs a stable identity for seat ownership, reconnects, moderation, match records, and protected server state. Local Kani remains available without an account.</p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><ShieldCheck className="text-emerald-300" /><h2 className="mt-3 font-black">Server-validated moves</h2><p className="mt-1 text-sm leading-6 text-stone-400">No browser can freely overwrite the board.</p></div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Gamepad2 className="text-amber-300" /><h2 className="mt-3 font-black">Guest play remains</h2><p className="mt-1 text-sm leading-6 text-stone-400">Keep playing local matches without registering.</p></div>
-              </div>
-              {message && <p className="mt-5 rounded-xl border border-red-400/30 bg-red-950/40 p-3 text-red-100">{message}</p>}
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link href="/account?next=%2Fonline&source=online-gate" className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 font-black text-white"><UserPlus /> Create free account</Link>
-                <Link href="/?hub=1" className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 font-black text-white">Play locally <ArrowRight /></Link>
-              </div>
-            </div>
+      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#100e0c] p-6 text-stone-100">
+        <section className="w-full max-w-lg text-center">
+          <Users className="mx-auto text-amber-200" size={56} strokeWidth={1.3}/>
+          <h1 className="mt-6 text-4xl sm:text-5xl">Play together.</h1>
+          <p className="mt-3 text-stone-300">Sign in to join online matches.</p>
+          {message && <p role="status" className="mt-4 text-sm text-amber-200">{message}</p>}
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link href="/account?next=%2Fonline&source=online-gate" className="kani-action">Sign in <ArrowRight size={18}/></Link>
+            <Link href="/?hub=1" className="kani-link text-sm">Play locally</Link>
           </div>
         </section>
       </main>
