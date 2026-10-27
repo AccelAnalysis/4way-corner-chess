@@ -13,14 +13,14 @@
   const setupStandardBoard = () => {
     const newBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
     INITIAL_PIECES.forEach(p => {
-      newBoard[p.r][p.c] = { type: p.type, color: p.color, id: p.id, dir: null };
+      newBoard[p.r][p.c] = { type: p.type, color: p.color, originColor: p.color, id: p.id, dir: null };
     });
 
     if (centerPawns) {
-      newBoard[3][3] = { type: 'p', color: 'B', id: 'B-cp', dir: null }; 
-      newBoard[3][4] = { type: 'p', color: 'W', id: 'W-cp', dir: null }; 
-      newBoard[4][3] = { type: 'p', color: 'K', id: 'K-cp', dir: null }; 
-      newBoard[4][4] = { type: 'p', color: 'R', id: 'R-cp', dir: null }; 
+      newBoard[3][3] = { type: 'p', color: 'B', originColor: 'B', id: 'B-cp', dir: null }; 
+      newBoard[3][4] = { type: 'p', color: 'W', originColor: 'W', id: 'W-cp', dir: null }; 
+      newBoard[4][3] = { type: 'p', color: 'K', originColor: 'K', id: 'K-cp', dir: null }; 
+      newBoard[4][4] = { type: 'p', color: 'R', originColor: 'R', id: 'R-cp', dir: null }; 
     }
 
     const initControl = { W: ['W'], B: ['B'], K: ['K'], R: ['R'] };
@@ -36,6 +36,8 @@
     setCaptureEffects([]);
     setChatMessages([]);
     setMoveHistory([{ board: newBoard, controlled: initControl, turnIndex: 0 }]);
+    repetitionHistoryRef.current = [positionSignature({ board: newBoard.flat(), controlled: initControl, turnIndex: 0, allianceMode })];
+    quietMoveRef.current = 0;
     setActivePuzzle(null);
     
     const times = { W: timeControl, B: timeControl, K: timeControl, R: timeControl };
@@ -49,7 +51,9 @@
   };
 
   const startPuzzle = (puzzle, isDaily = false) => {
-    const initialBoard = puzzle.setup();
+    const initialBoard = puzzle.setup().map((row) => row.map((piece) => piece ? { ...piece, originColor: piece.originColor || piece.color } : null));
+    repetitionHistoryRef.current = [];
+    quietMoveRef.current = 0;
     const initControl = JSON.parse(JSON.stringify(puzzle.controlled));
     
     setBoard(initialBoard);
@@ -125,10 +129,14 @@
   }, [captureEffects]);
 
   const handlePlayerElimination = (playerToEliminate) => {
-    let newControlled = { ...controlled };
-    newControlled[playerToEliminate] = []; 
+    if (!(controlled[playerToEliminate] || []).length) return;
+    const removedColors = new Set(controlled[playerToEliminate]);
+    const newBoard = board.map((row) => row.map((piece) => piece && removedColors.has(piece.color) ? null : piece));
+    const newControlled = { ...controlled, [playerToEliminate]: [] };
+    setBoard(newBoard);
     setControlled(newControlled);
-    checkWinConditionAndAdvanceTurn(board, newControlled);
+    quietMoveRef.current = 0;
+    checkWinConditionAndAdvanceTurn(newBoard, newControlled);
   };
 
   const evaluateAIMoveScore = (m, boardState, aiType) => {
@@ -258,6 +266,8 @@
     const targetPiece = newBoard[r][c];
     let newControlled = { ...controlled };
 
+    if (!activePuzzle) quietMoveRef.current = targetPiece || movingPiece.type === 'p' ? 0 : quietMoveRef.current + 1;
+
     if (movingPiece.type === 'p' && !movingPiece.dir) {
       movingPiece.dir = [r - sr, c - sc];
     }
@@ -286,10 +296,11 @@
 
     let isPromotion = false;
     if (movingPiece.type === 'p') {
-      if (movingPiece.color === 'B' && (r === 7 || c === 7)) isPromotion = true;
-      if (movingPiece.color === 'W' && (r === 7 || c === 0)) isPromotion = true;
-      if (movingPiece.color === 'K' && (r === 0 || c === 7)) isPromotion = true;
-      if (movingPiece.color === 'R' && (r === 0 || c === 0)) isPromotion = true;
+      const pawnOrigin = movingPiece.originColor || movingPiece.color;
+      if (pawnOrigin === 'B' && (r === 7 || c === 7)) isPromotion = true;
+      if (pawnOrigin === 'W' && (r === 7 || c === 0)) isPromotion = true;
+      if (pawnOrigin === 'K' && (r === 0 || c === 7)) isPromotion = true;
+      if (pawnOrigin === 'R' && (r === 0 || c === 0)) isPromotion = true;
     }
 
     newBoard[r][c] = movingPiece;

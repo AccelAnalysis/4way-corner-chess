@@ -37,17 +37,20 @@
     if (validMoves.includes(index)) {
       const from = selected;
       setSelected(null);
-      run(() => api('/api/rooms/move', {
-        roomCode,
-        from,
-        to: index,
-        promotion: 'q',
-        expectedVersion: game.version,
-      }));
+      if (game.board[from]?.type === 'p' && isPromotionSquare(game.board[from], index)) {
+        setPendingPromotion({ from, to: index, expectedVersion: game.version });
+        return;
+      }
+      submitMove(from, index, 'q', game.version);
       return;
     }
     if (piece && (game.controlled?.[seat] || []).includes(piece.color)) setSelected(index);
     else setSelected(null);
+  }
+
+  function submitMove(from, to, promotion, expectedVersion) {
+    setPendingPromotion(null);
+    run(() => api('/api/rooms/move', { roomCode, from, to, promotion, expectedVersion }));
   }
 
   function resign() {
@@ -65,6 +68,7 @@
     setRoom(null);
     setPlayers([]);
     setMessages([]);
+    setPendingPromotion(null);
   }
 
   if (!firebaseReady) {
@@ -166,6 +170,22 @@
   const currentName = game?.winner || COLOR_NAMES[currentSeat] || 'Complete';
   return (
     <main className="min-h-[calc(100svh-56px)] bg-[radial-gradient(circle_at_top,#2e1c13,#090605_70%)] p-3 text-stone-100 sm:p-5">
+      {pendingPromotion && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-5" role="dialog" aria-modal="true" aria-label="Choose pawn promotion">
+          <section className="w-full max-w-sm rounded-2xl border border-amber-300/50 bg-stone-950 p-6 shadow-2xl">
+            <h2 className="mb-2 text-2xl font-bold">Promote your pawn</h2>
+            <p className="mb-5 text-sm text-stone-300">Choose the new piece. Every option follows the same rules.</p>
+            <div className="grid grid-cols-4 gap-2">
+              {['q', 'r', 'b', 'n'].map((type) => (
+                <button key={type} type="button" disabled={busy} onClick={() => submitMove(pendingPromotion.from, pendingPromotion.to, type, pendingPromotion.expectedVersion)}
+                  className="rounded-xl border border-amber-400/40 bg-amber-300/10 p-3 text-3xl hover:bg-amber-300/20"
+                  aria-label={ { q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight' }[type] }>{SYMBOLS[type]}</button>
+              ))}
+            </div>
+            <button type="button" onClick={() => setPendingPromotion(null)} className="mt-5 w-full rounded-lg border border-stone-600 px-3 py-2">Cancel</button>
+          </section>
+        </div>
+      )}
       <section className="mx-auto max-w-7xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/25 bg-stone-950/80 p-4">
           <div><p className="text-xs font-black uppercase tracking-widest text-stone-400">Room {roomCode} · Seat {seat || 'spectator'}</p><h1 className="text-2xl font-black">{game?.status === 'complete' ? `${currentName} wins` : `${currentName} to move`}</h1></div>

@@ -30,6 +30,8 @@ const DIAGONAL = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 const KING_STEPS = [...ORTHOGONAL, ...DIAGONAL];
 const KNIGHT_STEPS = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
 const PROMOTION_TYPES = new Set(['q', 'r', 'b', 'n']);
+const MAX_POSITION_HISTORY = 160;
+const MAX_NO_PROGRESS_PLIES = 160;
 const PIECE_VALUES = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 10000 };
 
 export class GameRuleError extends Error {
@@ -83,17 +85,40 @@ export function isAllied(colorA, colorB, allianceMode = 'ffa') {
 export function createInitialBoard({ centerPawns = false } = {}) {
   const board = Array(BOARD_SIZE * BOARD_SIZE).fill(null);
   for (const [row, column, type, color, id] of PIECES) {
-    board[boardIndex(row, column)] = { type, color, id, dir: null };
+    board[boardIndex(row, column)] = { type, color, originColor: color, id, dir: null };
   }
 
   if (centerPawns) {
-    board[boardIndex(3, 3)] = { type: 'p', color: 'B', id: 'B-cp', dir: null };
-    board[boardIndex(3, 4)] = { type: 'p', color: 'W', id: 'W-cp', dir: null };
-    board[boardIndex(4, 3)] = { type: 'p', color: 'K', id: 'K-cp', dir: null };
-    board[boardIndex(4, 4)] = { type: 'p', color: 'R', id: 'R-cp', dir: null };
+    board[boardIndex(3, 3)] = { type: 'p', color: 'B', originColor: 'B', id: 'B-cp', dir: null };
+    board[boardIndex(3, 4)] = { type: 'p', color: 'W', originColor: 'W', id: 'W-cp', dir: null };
+    board[boardIndex(4, 3)] = { type: 'p', color: 'K', originColor: 'K', id: 'K-cp', dir: null };
+    board[boardIndex(4, 4)] = { type: 'p', color: 'R', originColor: 'R', id: 'R-cp', dir: null };
   }
 
   return board;
+}
+
+// Stable game positions exclude clocks, piece IDs, and other non-rule metadata.
+export function positionSignature(state) {
+  const ownership = COLORS.map((color) => `${color}:${(state.controlled[color] || []).join('')}`).join('/');
+  const pieces = state.board.map((piece) => {
+    if (!piece) return '.';
+    const direction = piece.dir ? piece.dir.map((n) => n + 1).join('') : 'u';
+    return `${piece.type}${piece.color}${piece.originColor || piece.color}${direction}`;
+  }).join(',');
+  return `${state.turnIndex}|${state.allianceMode}|${ownership}|${pieces}`;
+}
+
+function recordPosition(state) {
+  const signature = positionSignature(state);
+  const history = [...(state.positionHistory || []), signature].slice(-MAX_POSITION_HISTORY);
+  if (state.status !== 'active') return { ...state, positionHistory: history };
+  const repeated = history.filter((candidate) => candidate === signature).length >= 3;
+  const noProgress = (state.noProgressPlies || 0) >= MAX_NO_PROGRESS_PLIES;
+  if (repeated || noProgress) {
+    return { ...state, positionHistory: history, winner: 'Draw', status: 'complete', drawReason: repeated ? 'threefold_repetition' : 'no_progress' };
+  }
+  return { ...state, positionHistory: history };
 }
 
 export function createGameState({ mode = 'ffa', timeControlSeconds = 300, centerPawns = false } = {}, nowMs = Date.now()) {
@@ -103,8 +128,8 @@ export function createGameState({ mode = 'ffa', timeControlSeconds = 300, center
     ? null
     : Math.max(15, Math.min(3600, Number(timeControlSeconds) || (normalizedMode === 'blitz' ? 60 : 300)));
 
-  return {
-    schemaVersion: 1,
+  const initial = {
+    schemaVersion: 2,
     board: createInitialBoard({ centerPawns }),
     controlled: { W: ['W'], B: ['B'], K: ['K'], R: ['R'] },
     turnIndex: 0,
@@ -124,7 +149,11 @@ export function createGameState({ mode = 'ffa', timeControlSeconds = 300, center
     },
     turnStartedAtMs: nowMs,
     lastMove: null,
+    noProgressPlies: 0,
+    positionHistory: [],
+    drawReason: null,
   };
+  return recordPosition(initial);
 }
 
 function addStepMove(state, moves, sourceColor, row, column) {
@@ -188,7 +217,7 @@ export function getValidMoveIndices(state, fromIndex) {
 function remainingSecondsForCurrentTurn(state, nowMs) {
   if (state.timeControlSeconds === null) return null;
   const seat = COLORS[state.turnIndex];
-  const elapsed = Math.max(0, Math.floor((nowMs - Number(state.turnStartedAtMs || nowMs)) / 1000));
+  const elapsed = Math.max(0, Math.floor((nowMs - Number(state.turnStartedAtMs ?? nowMs)) / 1000));
   return Math.max(0, Number(state.timeRemaining?.[seat] ?? state.timeControlSeconds) - elapsed);
 }
 
@@ -222,31 +251,47 @@ function determineWinner(controlled, allianceMode) {
   return ['B', 'W'].includes(first) ? 'Blue & White Alliance' : 'Black & Red Alliance';
 }
 
-function isPromotionSquare(piece, toIndex) {
+export function isPromotionSquare(piece, toIndex) {
   if (piece.type !== 'p') return false;
   const { row, column } = boardPosition(toIndex);
-  if (piece.color === 'B') return row === 7 || column === 7;
-  if (piece.color === 'W') return row === 7 || column === 0;
-  if (piece.color === 'K') return row === 0 || column === 7;
+  const originColor = piece.originColor || piece.color;
+  if (originColor === 'B') return row === 7 || column === 7;
+  if (originColor === 'W') return row === 7 || column === 0;
+  if (originColor === 'K') return row === 0 || column === 7;
   return row === 0 || column === 0;
 }
 
-function finalizeTurn(state, controlled, nowMs) {
-  const winner = determineWinner(controlled, state.allianceMode);
-  if (winner) {
-    return {
-      winner,
-      status: 'complete',
-      turnIndex: state.turnIndex,
-      turnStartedAtMs: nowMs,
-    };
+function hasLegalMove(board, controlled, allianceMode, seat) {
+  const owned = new Set(controlled[seat] || []);
+  const candidate = { board, controlled, allianceMode };
+  for (let index = 0; index < board.length; index += 1) {
+    if (board[index] && owned.has(board[index].color) && getValidMoveIndices(candidate, index).length > 0) return true;
   }
-  return {
-    winner: null,
-    status: 'active',
-    turnIndex: nextLivingTurnIndex(controlled, state.turnIndex),
-    turnStartedAtMs: nowMs,
-  };
+  return false;
+}
+
+// The original desktop game eliminates seats with no available moves.
+function finalizeTurn(state, board, controlled, nowMs, keepCurrentTurn = false) {
+  let winner = determineWinner(controlled, state.allianceMode);
+  let turnIndex = state.turnIndex;
+  const autoEliminated = [];
+  if (!winner) {
+    turnIndex = keepCurrentTurn ? turnIndex : nextLivingTurnIndex(controlled, turnIndex);
+    for (let attempt = 0; attempt < COLORS.length; attempt += 1) {
+      const seat = COLORS[turnIndex];
+      if (hasLegalMove(board, controlled, state.allianceMode, seat)) break;
+      const owned = new Set(controlled[seat] || []);
+      for (let index = 0; index < board.length; index += 1) {
+        if (board[index] && owned.has(board[index].color)) board[index] = null;
+      }
+      controlled[seat] = [];
+      autoEliminated.push(seat);
+      winner = determineWinner(controlled, state.allianceMode);
+      if (winner) break;
+      turnIndex = nextLivingTurnIndex(controlled, turnIndex);
+    }
+  }
+  return { winner, status: winner ? 'complete' : 'active', turnIndex, turnStartedAtMs: nowMs, autoEliminated };
 }
 
 export function applyMove(state, { seat, from, to, promotion = 'q' }, nowMs = Date.now()) {
@@ -304,15 +349,16 @@ export function applyMove(state, { seat, from, to, promotion = 'q' }, nowMs = Da
   board[to] = movingPiece;
 
   const timeRemaining = getClockSnapshot(state, nowMs);
-  const finalized = finalizeTurn(state, controlled, nowMs);
+  const finalized = finalizeTurn(state, board, controlled, nowMs);
 
-  return {
+  return recordPosition({
     ...state,
     ...finalized,
     board,
     controlled,
     timeRemaining,
     turnCount: Number(state.turnCount || 0) + 1,
+    noProgressPlies: capturedPiece || sourcePiece.type === 'p' || finalized.autoEliminated.length ? 0 : Number(state.noProgressPlies || 0) + 1,
     version: Number(state.version || 0) + 1,
     lastMove: {
       seat,
@@ -320,9 +366,10 @@ export function applyMove(state, { seat, from, to, promotion = 'q' }, nowMs = Da
       to,
       captured: capturedPiece ? { type: capturedPiece.type, color: capturedPiece.color } : null,
       promotedTo,
+      autoEliminated: finalized.autoEliminated,
       atMs: nowMs,
     },
-  };
+  });
 }
 
 function removeSeatArmy(board, controlledColors) {
@@ -333,28 +380,25 @@ function removeSeatArmy(board, controlledColors) {
 export function applyResignation(state, seat, nowMs = Date.now()) {
   if (state.status !== 'active') throw new GameRuleError('MATCH_NOT_ACTIVE', 'The match is not active.');
   if (!COLORS.includes(seat)) throw new GameRuleError('INVALID_SEAT', 'Unknown player seat.');
+  if (!(state.controlled[seat] || []).length) throw new GameRuleError('ALREADY_ELIMINATED', 'This seat has already been eliminated.');
 
   const controlled = cloneControlled(state.controlled);
   const board = removeSeatArmy(state.board, controlled[seat]);
+  const wasActive = COLORS[state.turnIndex] === seat;
+  const timeRemaining = getClockSnapshot(state, nowMs);
   controlled[seat] = [];
-  const finalized = finalizeTurn(state, controlled, nowMs);
-  if (!finalized.winner && COLORS[state.turnIndex] === seat) {
-    finalized.turnIndex = nextLivingTurnIndex(controlled, state.turnIndex);
-  }
-
-  return {
-    ...state,
-    ...finalized,
-    board,
-    controlled,
-    timeRemaining: getClockSnapshot(state, nowMs),
+  const finalized = finalizeTurn(state, board, controlled, nowMs, !wasActive);
+  return recordPosition({
+    ...state, ...finalized, board, controlled, timeRemaining,
+    noProgressPlies: 0,
     version: Number(state.version || 0) + 1,
-    lastMove: { type: 'resign', seat, atMs: nowMs },
-  };
+    lastMove: { type: 'resign', seat, autoEliminated: finalized.autoEliminated, atMs: nowMs },
+  });
 }
 
 export function applyTimeout(state, nowMs = Date.now()) {
   if (state.status !== 'active') throw new GameRuleError('MATCH_NOT_ACTIVE', 'The match is not active.');
+  if (state.timeControlSeconds === null) throw new GameRuleError('CLOCK_DISABLED', 'This match has no time limit.');
   const seat = COLORS[state.turnIndex];
   if (remainingSecondsForCurrentTurn(state, nowMs) > 0) {
     throw new GameRuleError('CLOCK_RUNNING', 'The active clock has not expired.');
@@ -362,20 +406,15 @@ export function applyTimeout(state, nowMs = Date.now()) {
 
   const controlled = cloneControlled(state.controlled);
   const board = removeSeatArmy(state.board, controlled[seat]);
+  const timeRemaining = { ...getClockSnapshot(state, nowMs), [seat]: 0 };
   controlled[seat] = [];
-  const timeRemaining = { ...state.timeRemaining, [seat]: 0 };
-  const finalized = finalizeTurn(state, controlled, nowMs);
-  if (!finalized.winner) finalized.turnIndex = nextLivingTurnIndex(controlled, state.turnIndex);
-
-  return {
-    ...state,
-    ...finalized,
-    board,
-    controlled,
-    timeRemaining,
+  const finalized = finalizeTurn(state, board, controlled, nowMs);
+  return recordPosition({
+    ...state, ...finalized, board, controlled, timeRemaining,
+    noProgressPlies: 0,
     version: Number(state.version || 0) + 1,
-    lastMove: { type: 'timeout', seat, atMs: nowMs },
-  };
+    lastMove: { type: 'timeout', seat, autoEliminated: finalized.autoEliminated, atMs: nowMs },
+  });
 }
 
 export function chooseAIMove(state, seat) {
