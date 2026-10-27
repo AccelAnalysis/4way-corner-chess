@@ -123,15 +123,15 @@ export default function CoinShop() {
   const showCoinPacks = process.env.NEXT_PUBLIC_KANI_COIN_PACKS_LIVE === 'true';
 
   return (
-    <main className="min-h-[calc(100svh-56px)] bg-[#100e0c] px-5 py-10 text-stone-100">
+    <main className="min-h-[calc(100svh-56px)] bg-[#f7f0e5] px-5 py-10 text-[#32281f]">
       <section className="mx-auto max-w-6xl">
-        <div className="flex items-center justify-between gap-5 border-b border-white/15 pb-6">
+        <div className="flex items-center justify-between gap-5 border-b border-[#cdb99a] pb-6">
           <h1 className="text-4xl sm:text-5xl">Shop</h1>
-          <div className="flex items-center gap-2 text-xl text-amber-200" aria-label="Kani Coin balance">
+          <div className="flex items-center gap-2 text-xl text-[#845121]" aria-label="Kani Coin balance">
             <Coins size={21} aria-hidden="true" /> {registered ? profile?.coinBalance ?? '—' : '—'}
           </div>
         </div>
-        {message && <p className="mt-5 text-sm text-amber-200" role="status">{message}</p>}
+        {message && <p className="mt-5 text-sm text-[#845121]" role="status">{message}</p>}
         {firebaseReady && !registered && (
           <div className="mt-5 text-sm">
             <Link href="/account?next=%2Fshop&source=shop-gate" className="kani-link">Sign in to save your collection</Link>
@@ -154,27 +154,27 @@ export default function CoinShop() {
                 : 'linear-gradient(45deg,#8c9caf 25%,#e5eaf1 25%,#e5eaf1 50%,#8c9caf 50%,#8c9caf 75%,#e5eaf1 75%)';
               return (
                 <article key={item.id} className="min-w-0">
-                  <div className="relative aspect-square overflow-hidden rounded-md border border-white/15 bg-stone-900">
+                  <div className="relative aspect-square overflow-hidden rounded-md border border-[#cdb99a] bg-[#fffbf3]">
                     <div className="absolute inset-3 shadow-inner" style={{ background: boardStyle, backgroundSize: '42% 42%' }} aria-hidden="true"/>
                     <span className="absolute inset-0 grid place-items-center text-6xl text-amber-100 drop-shadow-xl" aria-hidden="true">♚</span>
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
                     <h3 className="text-base">{item.name}</h3>
-                    {equipped && <CheckCircle2 size={19} className="shrink-0 text-amber-200" aria-label="Equipped"/>}
+                    {equipped && <CheckCircle2 size={19} className="shrink-0 text-[#845121]" aria-label="Equipped"/>}
                   </div>
                   <div className="mt-2 text-sm">
                     {!firebaseReady ? (
-                      <span className="text-stone-500">Coming soon</span>
+                      <span className="text-stone-600">Coming soon</span>
                     ) : !registered ? (
-                      <Link href="/account?next=%2Fshop" className="kani-link text-amber-200">{item.priceCoins ? item.priceCoins + ' coins' : 'Free'}</Link>
+                      <Link href="/account?next=%2Fshop" className="kani-link text-[#845121]">{item.priceCoins ? item.priceCoins + ' coins' : 'Free'}</Link>
                     ) : equipped ? (
-                      <span className="text-stone-400">In use</span>
+                      <span className="text-stone-600">In use</span>
                     ) : owned ? (
-                      <button onClick={() => equipItem(item.id)} disabled={!commerceReady || Boolean(busy)} className="kani-link text-amber-200">
+                      <button onClick={() => equipItem(item.id)} disabled={!commerceReady || Boolean(busy)} className="kani-link text-[#845121]">
                         {busy === `equip:${item.id}` ? 'Equipping…' : 'Equip'}
                       </button>
                     ) : (
-                      <button onClick={() => buyItem(item.id)} disabled={!commerceReady || Boolean(busy)} className="kani-link text-amber-200">
+                      <button onClick={() => buyItem(item.id)} disabled={!commerceReady || Boolean(busy)} className="kani-link text-[#845121]">
                         {busy === item.id ? 'Adding…' : `${item.priceCoins} coins`}
                       </button>
                     )}
@@ -186,20 +186,20 @@ export default function CoinShop() {
         </section>
 
         {showCoinPacks && (
-          <section className="mt-12 border-t border-white/15 pt-8">
+          <section className="mt-12 border-t border-[#cdb99a] pt-8">
             <h2 className="text-2xl">Kani Coins</h2>
             <div className="mt-5 divide-y divide-white/10">
               {Object.values(COIN_PACKS).map((pack) => (
                 <div key={pack.id} className="flex items-center justify-between gap-4 py-4">
                   <div><h3 className="text-base">{pack.name}</h3>
-                    <span className="text-sm text-stone-400">{pack.coins.toLocaleString()} coins</span>
+                    <span className="text-sm text-stone-600">{pack.coins.toLocaleString()} coins</span>
                   </div>
                   {commerceReady ? (
                     <button onClick={() => buyPack(pack.id)} disabled={Boolean(busy)} className="kani-action">
                       {formatUsd(pack.priceCents)}
                     </button>
                   ) : (
-                    <span className="text-stone-400">{formatUsd(pack.priceCents)}</span>
+                    <span className="text-stone-600">{formatUsd(pack.priceCents)}</span>
                   )}
                 </div>
               ))}
