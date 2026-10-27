@@ -84,7 +84,7 @@
   }
 
   if (authLoading) {
-    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#120a05] text-amber-300"><Loader2 className="animate-spin" size={44} /></main>;
+    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] text-[#945921]"><Loader2 className="animate-spin" size={44} /></main>;
   }
 
   if (!roomCode) {
@@ -134,7 +134,7 @@
   }
 
   if (!room) {
-    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#120a05] text-amber-300"><Loader2 className="animate-spin" size={44} /></main>;
+    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] text-[#945921]"><Loader2 className="animate-spin" size={44} /></main>;
   }
 
   if (room.status === 'lobby') {
@@ -218,7 +218,7 @@
                 </div>
               ))}
             </div>
-            <div className="relative aspect-square w-full max-w-[680px] overflow-hidden rounded-2xl border-[10px] border-stone-900 shadow-2xl" aria-label="KANI four-way chess board">
+            <div className="relative aspect-square w-full max-w-[680px] overflow-hidden rounded-2xl border-[6px] border-[#ab8154] shadow-[0_10px_30px_rgba(71,43,21,0.16)]" aria-label="KANI four-way chess board">
               <div className="absolute inset-0 grid grid-cols-8">
                 {(game?.board || []).map((piece, index) => {
                   const row = Math.floor(index / 8);
@@ -229,7 +229,7 @@
                   const lastDestination = visibleMove?.to === index;
                   return (
                     <button key={index} onClick={() => clickSquare(index)} disabled={!canMove}
-                      className={`relative grid place-items-center text-[clamp(1.5rem,6vw,3.6rem)] ${(row + column) % 2 === 0 ? 'bg-[#d8c4a4]' : 'bg-[#805b3d]'} ${selectedSquare ? 'ring-4 ring-inset ring-amber-300' : ''} ${valid ? 'after:absolute after:h-3 after:w-3 after:rounded-full after:bg-emerald-400/80' : ''} disabled:cursor-default`}
+                      className={`relative grid place-items-center text-[clamp(1.5rem,6vw,3.6rem)] ${(row + column) % 2 === 0 ? 'bg-[#f5dfb8]' : 'bg-[#b98b60]'} ${selectedSquare ? 'ring-4 ring-inset ring-amber-300' : ''} ${valid ? 'after:absolute after:h-3 after:w-3 after:rounded-full after:bg-emerald-400/80' : ''} disabled:cursor-default`}
                       aria-label={`Board square ${index + 1}${piece ? ` ${COLOR_NAMES[piece.color]} ${piece.type}` : ''}`}>
                       {(lastSource || lastDestination) && (
                         <span className={`pointer-events-none absolute inset-0 ${lastDestination ? 'bg-amber-300/35 ring-2 ring-inset ring-amber-400/70' : 'bg-amber-200/20'}`} aria-hidden="true" />
@@ -256,15 +256,15 @@
           </div>
           <aside className="space-y-4">
             <div className="rounded-2xl border border-[#d4c3a7] bg-white/80 p-4">
-              <h2 className="mb-3 flex items-center gap-2 font-black text-amber-300"><Users size={18} /> Players</h2>
-              <div className="space-y-2">{COLORS.map((candidate) => <div key={candidate} className="flex items-center justify-between rounded-lg bg-white/5 p-2 text-sm"><span>{COLOR_NAMES[candidate]}</span><span className="text-xs text-stone-600">{room.seats?.[candidate] ? playersBySeat[candidate]?.displayName || 'Human' : 'Server AI'}</span></div>)}</div>
+              <h2 className="mb-3 flex items-center gap-2 font-black text-[#925b24]"><Users size={18} /> Players</h2>
+              <div className="space-y-2">{COLORS.map((candidate) => <div key={candidate} className="flex items-center justify-between rounded-lg bg-[#efe1ce] p-2 text-sm"><span>{COLOR_NAMES[candidate]}</span><span className="text-xs text-stone-600">{room.seats?.[candidate] ? playersBySeat[candidate]?.displayName || 'Human' : 'Server AI'}</span></div>)}</div>
             </div>
-            <div className="rounded-2xl border border-stone-700 bg-stone-950/75 p-4">
+            <div className="rounded-2xl border border-[#d4c3a7] bg-[#fffaf1] p-4">
               <h2 className="mb-3 flex items-center gap-2 font-black text-blue-300"><MessageCircle size={18} /> Quick chat</h2>
               <div className="max-h-40 space-y-2 overflow-auto rounded-xl bg-black/20 p-2 text-sm">{messages.length ? messages.map((message) => <p key={message.id}><strong>{message.seat}:</strong> {message.message}</p>) : <p className="text-stone-500">No messages yet.</p>}</div>
-              <div className="mt-3 grid grid-cols-2 gap-2">{QUICK_CHATS.slice(4).map((message) => <button key={message} onClick={() => sendChat(message)} disabled={busy} className="rounded-lg border border-stone-700 bg-white/5 p-2 text-xs font-bold hover:bg-white/10">{message}</button>)}</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">{QUICK_CHATS.slice(4).map((message) => <button key={message} onClick={() => sendChat(message)} disabled={busy} className="rounded-lg border border-[#d4c3a7] bg-[#efe1ce] p-2 text-xs font-bold hover:bg-white/10">{message}</button>)}</div>
             </div>
-            <button onClick={() => window.location.reload()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-600 p-3 font-bold"><RefreshCcw size={17} /> Reconnect view</button>
+            <button onClick={() => window.location.reload()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d4c3a7] p-3 font-bold"><RefreshCcw size={17} /> Reconnect view</button>
           </aside>
         </div>
       </section>
