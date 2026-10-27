@@ -266,6 +266,8 @@
     const targetPiece = newBoard[r][c];
     let newControlled = { ...controlled };
 
+    if (!activePuzzle) quietMoveRef.current = targetPiece || movingPiece.type === 'p' ? 0 : quietMoveRef.current + 1;
+
     if (movingPiece.type === 'p' && !movingPiece.dir) {
       movingPiece.dir = [r - sr, c - sc];
     }
@@ -294,10 +296,11 @@
 
     let isPromotion = false;
     if (movingPiece.type === 'p') {
-      if (movingPiece.color === 'B' && (r === 7 || c === 7)) isPromotion = true;
-      if (movingPiece.color === 'W' && (r === 7 || c === 0)) isPromotion = true;
-      if (movingPiece.color === 'K' && (r === 0 || c === 7)) isPromotion = true;
-      if (movingPiece.color === 'R' && (r === 0 || c === 0)) isPromotion = true;
+      const pawnOrigin = movingPiece.originColor || movingPiece.color;
+      if (pawnOrigin === 'B' && (r === 7 || c === 7)) isPromotion = true;
+      if (pawnOrigin === 'W' && (r === 7 || c === 0)) isPromotion = true;
+      if (pawnOrigin === 'K' && (r === 0 || c === 7)) isPromotion = true;
+      if (pawnOrigin === 'R' && (r === 0 || c === 0)) isPromotion = true;
     }
 
     newBoard[r][c] = movingPiece;
