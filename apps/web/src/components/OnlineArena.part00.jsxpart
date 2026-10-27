@@ -27,6 +27,7 @@ import {
   COLOR_NAMES,
   getClockSnapshot,
   getValidMoveIndices,
+  isPromotionSquare,
 } from '../game/engine.mjs';
 
 const SYMBOLS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
@@ -64,6 +65,7 @@ export default function OnlineArena() {
   const [players, setPlayers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [pendingPromotion, setPendingPromotion] = useState(null);
   const [nowMs, setNowMs] = useState(Date.now());
   const aiVersionRef = useRef(null);
   const timeoutVersionRef = useRef(null);
@@ -176,6 +178,7 @@ export default function OnlineArena() {
 
   useEffect(() => {
     setSelected(null);
+    setPendingPromotion(null);
   }, [game?.version]);
 
   useEffect(() => {
