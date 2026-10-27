@@ -43,12 +43,12 @@ export default function RegisteredOnlineExperience() {
 
   if (!user || user.isAnonymous) {
     return (
-      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#100e0c] p-6 text-stone-100">
+      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] p-6 text-[#32281f]">
         <section className="w-full max-w-lg text-center">
-          <Users className="mx-auto text-amber-200" size={56} strokeWidth={1.3}/>
+          <Users className="mx-auto text-[#845121]" size={56} strokeWidth={1.3}/>
           <h1 className="mt-6 text-4xl sm:text-5xl">Play together.</h1>
-          <p className="mt-3 text-stone-300">Sign in to join online matches.</p>
-          {message && <p role="status" className="mt-4 text-sm text-amber-200">{message}</p>}
+          <p className="mt-3 text-stone-700">Sign in to join online matches.</p>
+          {message && <p role="status" className="mt-4 text-sm text-[#845121]">{message}</p>}
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link href="/account?next=%2Fonline&source=online-gate" className="kani-action">Sign in <ArrowRight size={18}/></Link>
             <Link href="/?hub=1" className="kani-link text-sm">Play locally</Link>
