@@ -1,0 +1,291 @@
+    unlockedThemes: ['classic', 'medieval', 'tribal'],
+    dailyCompleted: null,
+  });
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('kani_profile');
+      if (saved) setProfile(JSON.parse(saved));
+    } catch (error) {
+      console.warn('Unable to restore the local Kani profile.', error);
+    }
+  }, []);
+
+  const saveProfile = (newProfile) => {
+    setProfile(newProfile);
+    try {
+      window.localStorage.setItem('kani_profile', JSON.stringify(newProfile));
+    } catch (error) {
+      console.warn('Unable to save the local Kani profile.', error);
+    }
+  };
+
+  const [toast, setToast] = useState(null);
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // --- Game State ---
+  const [gameState, setGameState] = useState('hub'); 
+  const [playMode, setPlayMode] = useState('ffa');
+  const [playerTypes, setPlayerTypes] = useState({ W: 'human', B: 'human', K: 'human', R: 'human' });
+  const [timeControl, setTimeControl] = useState(300); 
+  const [centerPawns, setCenterPawns] = useState(false); 
+  const [allianceMode, setAllianceMode] = useState('ffa'); 
+  const [theme, setTheme] = useState('medieval'); 
+  const [playerThemes, setPlayerThemes] = useState({ W: 'medieval', B: 'medieval', K: 'medieval', R: 'medieval' });
+  const [showDangerZones, setShowDangerZones] = useState(true);
+
+  const [board, setBoard] = useState([]);
+  const [turnIndex, setTurnIndex] = useState(0);
+  const [turnCount, setTurnCount] = useState(0); 
+  const [controlled, setControlled] = useState({ W: ['W'], B: ['B'], K: ['K'], R: ['R'] });
+  const [selected, setSelected] = useState(null);
+  const [validMoves, setValidMoves] = useState([]);
+  const [winner, setWinner] = useState(null);
+  const [timeLeft, setTimeLeft] = useState({ W: 300, B: 300, K: 300, R: 300 });
+  const [promotionState, setPromotionState] = useState(null); 
+  
+  // --- Feature State: Replays & Chat ---
+  const [moveHistory, setMoveHistory] = useState([]);
+  const [replayIndex, setReplayIndex] = useState(0);
+  const [isPlayingReplay, setIsPlayingReplay] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [showChatPane, setShowChatPane] = useState(false);
+  const chatEndRef = useRef(null);
+
+  const [activePuzzle, setActivePuzzle] = useState(null);
+  const [captureEffects, setCaptureEffects] = useState([]); 
+
+  // --- Multiplayer State ---
+  const [user, setUser] = useState(null);
+  const [isOnline, setIsOnline] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const lastSyncId = useRef(null);
+
+  const currentPlayer = COLORS[turnIndex];
+
+  const today = new Date();
+  const dailyIndex = (today.getFullYear() + today.getMonth() + today.getDate()) % PUZZLES.length;
+  const dailyPuzzle = PUZZLES[dailyIndex];
+  const isDailyCompleted = profile.dailyCompleted === today.toDateString();
+
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  }, []);
+
+  const isAllied = (color1, color2, mode) => {
+    if (color1 === color2) return true;
+    if (mode === 'ffa' || activePuzzle) return false;
+    if (mode === 'diagonals') {
+      if ((color1 === 'B' || color1 === 'R') && (color2 === 'B' || color2 === 'R')) return true;
+      if ((color1 === 'W' || color1 === 'K') && (color2 === 'W' || color2 === 'K')) return true;
+    }
+    if (mode === 'top_bottom') {
+      if ((color1 === 'B' || color1 === 'W') && (color2 === 'B' || color2 === 'W')) return true;
+      if ((color1 === 'K' || color1 === 'R') && (color2 === 'K' || color2 === 'R')) return true;
+    }
+    return false;
+  };
+
+  const getValidMoves = (b, r, c, overrideColor = null) => {
+    const piece = b[r][c];
+    if (!piece) return [];
+    const moves = [];
+    const color = overrideColor || piece.color;
+    const { type, dir } = piece;
+
+    const addIfValid = (nr, nc) => {
+      if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) return false;
+      const target = b[nr][nc];
+      if (!target || !isAllied(color, target.color, allianceMode)) {
+        moves.push({ r: nr, c: nc });
+        return !target; 
+      }
+      return false; 
+    };
+
+    const slide = (dirs) => {
+      for (let [dr, dc] of dirs) {
+        for (let i = 1; i < BOARD_SIZE; i++) {
+          if (!addIfValid(r + dr * i, c + dc * i)) break;
+        }
+      }
+    };
+
+    const step = (dirs) => {
+      for (let [dr, dc] of dirs) addIfValid(r + dr, c + dc);
+    };
+
+    const ortho = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const diag = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+    const knightMoves = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
+
+    if (type === 'n') step(knightMoves);
+    else if (type === 'k') step([...ortho, ...diag]);
+    else if (type === 'r') slide(ortho);
+    else if (type === 'b') slide(diag);
+    else if (type === 'q') slide([...ortho, ...diag]);
+    else if (type === 'p') {
+      if (dir) {
+        addIfValid(r + dir[0], c + dir[1]);
+      } else {
+        step([...ortho, ...diag]);
+      }
+    }
+    return moves;
+  };
+
+  // --- Display Variables for Replay Support ---
+  const displayBoard = gameState === 'replay' ? moveHistory[replayIndex]?.board || board : board;
+  const displayControlled = gameState === 'replay' ? moveHistory[replayIndex]?.controlled || controlled : controlled;
+  const displayTurnIndex = gameState === 'replay' ? moveHistory[replayIndex]?.turnIndex || turnIndex : turnIndex;
+
+  const kingsInCheck = useMemo(() => {
+    const checks = [];
+    if (!displayBoard || displayBoard.length === 0) return checks;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const piece = displayBoard[r][c];
+        if (!piece) continue;
+        const moves = getValidMoves(displayBoard, r, c, piece.color); 
+        moves.forEach(m => {
+          const target = displayBoard[m.r][m.c];
+          if (target && target.type === 'k') {
+            checks.push({ r: m.r, c: m.c });
+          }
+        });
+      }
+    }
+    return checks;
+  }, [displayBoard, allianceMode, activePuzzle]);
+
+  const enemyThreats = useMemo(() => {
+    const threats = new Set();
+    if (!showDangerZones || !displayBoard || displayBoard.length === 0 || winner) return threats;
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const piece = displayBoard[r][c];
+        if (!piece) continue;
+        if (!isAllied(COLORS[displayTurnIndex], piece.color, allianceMode)) {
+          const moves = getValidMoves(displayBoard, r, c, piece.color);
+          moves.forEach(m => threats.add(`${m.r},${m.c}`));
+        }
+      }
+    }
+    return threats;
+  }, [displayBoard, displayTurnIndex, allianceMode, showDangerZones, winner, activePuzzle]);
+
+  const activePieces = useMemo(() => {
+    const pieces = [];
+    if (!displayBoard || displayBoard.length === 0) return pieces;
+    displayBoard.forEach((row, r) => {
+      row.forEach((piece, c) => {
+        if (piece) pieces.push({ ...piece, r, c });
+      });
+    });
+    return pieces;
+  }, [displayBoard]);
+
+  // --- Firebase Sync ---
+  useEffect(() => {
+    if (!auth) return undefined;
+    let cancelled = false;
+    const unsubscribe = onAuthStateChanged(auth, u => {
+      if (!cancelled) setUser(u);
+    });
+
+    const initAuth = async () => {
+      if (auth.currentUser) return;
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+
+    initAuth().catch((error) => console.warn('Unable to initialize optional Kani identity.', error));
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user || !isOnline || !roomCode || !db || activePuzzle) return;
+    const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode);
+    const unsub = onSnapshot(matchRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.syncId === lastSyncId.current) return; 
+        
+        if (data.board) setBoard(data.board);
+        if (data.turnIndex !== undefined) setTurnIndex(data.turnIndex);
+        if (data.controlled) setControlled(data.controlled);
+        if (data.winner !== undefined) setWinner(data.winner);
+        if (data.timeLeft) setTimeLeft(data.timeLeft);
+        if (data.gameState) setGameState(data.gameState);
+        if (data.playerTypes) setPlayerTypes(data.playerTypes);
+        if (data.playerThemes) setPlayerThemes(data.playerThemes);
+        if (data.centerPawns !== undefined) setCenterPawns(data.centerPawns);
+        if (data.allianceMode) setAllianceMode(data.allianceMode);
+        if (data.promotionState !== undefined) setPromotionState(data.promotionState);
+        if (data.theme) setTheme(data.theme);
+        if (data.turnCount !== undefined) setTurnCount(data.turnCount);
+        if (data.chatMessages) setChatMessages(data.chatMessages);
+        if (data.moveHistory) setMoveHistory(data.moveHistory);
+      }
+    }, (err) => console.error(err));
+    return () => unsub();
+  }, [user, isOnline, roomCode, activePuzzle]);
+
+  const pushGameState = async (updates) => {
+    if (!isOnline || !roomCode || !user || !db || activePuzzle) return; 
+    const id = crypto.randomUUID();
+    lastSyncId.current = id;
+    const matchRef = doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode);
+    await setDoc(matchRef, { ...updates, syncId: id, timestamp: Date.now() }, { merge: true });
+  };
+
+  const createRoom = () => {
+    window.location.assign('/online');
+  };
+
+  const joinRoom = () => {
+    window.location.assign('/online');
+  };
+
+  const buyTheme = () => {
+    window.location.assign('/shop');
+  };
+
+  const shareResult = () => {
+    const mode = activePuzzle ? "Puzzle" : (allianceMode === 'ffa' ? "FFA Skirmish" : "Alliance Mode");
+    const grid = `Kani: 4-Way Chess 🏆\n${mode} - ${Math.floor(turnCount/4)} Rounds\n` + 
+                 COLORS.map(c => (controlled[c].length > 0 ? (c==='W'?'👑':'🟦') : '💀')).join(' ') + 
+                 `\n[Play Kani]`;
+                 
+    navigator.clipboard.writeText(grid).then(() => showToast("Copied Summary to Clipboard!"));
+  };
+
+  const sendQuickChat = (msg) => {
+    if (playerTypes[currentPlayer].startsWith('ai') && !isOnline) return;
+    const newChat = { id: Date.now(), sender: currentPlayer, text: msg };
+    const newChats = [...chatMessages.slice(-20), newChat];
+    setChatMessages(newChats);
+    pushGameState({ chatMessages: newChats });
+    setShowChatPane(true);
+  };
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, showChatPane]);

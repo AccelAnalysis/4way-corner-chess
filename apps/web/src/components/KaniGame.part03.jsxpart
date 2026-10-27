@@ -1,0 +1,300 @@
+      if (playerTypes[currentPlayer].startsWith('ai')) {
+        newBoard[r][c] = { ...newBoard[r][c], type: 'q' };
+        setBoard(newBoard);
+        checkWinConditionAndAdvanceTurn(newBoard, newControlled);
+      } else {
+        setBoard(newBoard);
+        setControlled(newControlled);
+        const promoState = { r, c, color: movingPiece.color };
+        setPromotionState(promoState);
+        pushGameState({ board: newBoard, controlled: newControlled, promotionState: promoState });
+      }
+      return;
+    }
+
+    setBoard(newBoard);
+    setControlled(newControlled);
+    checkWinConditionAndAdvanceTurn(newBoard, newControlled);
+  };
+
+  const handlePromotionSelection = (pieceType) => {
+    const newBoard = board.map(row => [...row]);
+    newBoard[promotionState.r][promotionState.c] = {
+      ...newBoard[promotionState.r][promotionState.c],
+      type: pieceType
+    };
+    
+    setBoard(newBoard);
+    setPromotionState(null);
+    checkWinConditionAndAdvanceTurn(newBoard, controlled);
+  };
+
+  const processGameEndRewards = (winResult) => {
+    let newProfile = { ...profile };
+    let coinsEarned = 0;
+    
+    if (activePuzzle) {
+        if (winResult !== 'Loss' && winResult !== 'Draw') {
+            coinsEarned = activePuzzle.reward;
+            showToast(`Puzzle Solved! +${coinsEarned} Coins`);
+            if (activePuzzle.isDaily) {
+                newProfile.dailyCompleted = new Date().toDateString();
+            }
+        }
+    } else {
+        if (winResult === 'W') { 
+            coinsEarned = 25;
+            newProfile.elo[playMode] = Math.min(3000, newProfile.elo[playMode] + 15);
+            showToast(`Victory! +${coinsEarned} Coins | ELO +15`);
+        } else if (winResult === 'Draw') {
+            coinsEarned = 5;
+            showToast(`Draw. +${coinsEarned} Coins`);
+        } else if (winResult !== 'Loss') {
+            newProfile.elo[playMode] = Math.max(0, newProfile.elo[playMode] - 10);
+            showToast(`Defeat. ELO -10`);
+        }
+    }
+
+    newProfile.coins += coinsEarned;
+    saveProfile(newProfile);
+  };
+
+  const checkWinConditionAndAdvanceTurn = (currentBoard, currentControlled) => {
+    const nextTurnCount = turnCount + 1;
+    setTurnCount(nextTurnCount);
+
+    if (activePuzzle) {
+        const puzResult = activePuzzle.checkObj(currentBoard, currentControlled, nextTurnCount, promotionState);
+        
+        let nextIndex = turnIndex;
+        if (!puzResult) {
+            nextIndex = (turnIndex + 1) % 4;
+            while (currentControlled[COLORS[nextIndex]].length === 0) {
+              nextIndex = (nextIndex + 1) % 4;
+            }
+            setTurnIndex(nextIndex);
+        }
+        
+        const newState = { board: currentBoard, controlled: currentControlled, turnIndex: nextIndex };
+        setMoveHistory(prev => [...prev, newState]);
+
+        if (puzResult === 'Loss' || puzResult) {
+            setWinner(puzResult);
+            setGameState('finished');
+            if (puzResult !== 'Loss') processGameEndRewards(puzResult);
+        }
+        return; 
+    }
+
+    const activeColors = COLORS.filter(color => currentControlled[color].length > 0);
+    let isGameOver = false;
+    let winResult = null;
+
+    if (activeColors.length === 0) {
+      isGameOver = true;
+      winResult = 'Draw';
+    } else if (activeColors.length === 1) {
+      isGameOver = true;
+      winResult = activeColors[0];
+    } else if (allianceMode !== 'ffa') {
+      const firstActive = activeColors[0];
+      const allSameAlliance = activeColors.every(c => isAllied(firstActive, c, allianceMode));
+      if (allSameAlliance) {
+        isGameOver = true;
+        winResult = allianceMode === 'diagonals' ?
+          ((firstActive === 'B' || firstActive === 'R') ? 'Blue & Red Alliance' : 'White & Black Alliance') :
+          ((firstActive === 'B' || firstActive === 'W') ? 'Blue & White Alliance' : 'Black & Red Alliance');
+      }
+    }
+
+    let nextIndex = turnIndex;
+    if (!isGameOver) {
+      nextIndex = (turnIndex + 1) % 4;
+      while (currentControlled[COLORS[nextIndex]].length === 0) {
+        nextIndex = (nextIndex + 1) % 4;
+      }
+      setTurnIndex(nextIndex);
+    }
+
+    const newState = { board: currentBoard, controlled: currentControlled, turnIndex: nextIndex };
+    const newHistory = [...moveHistory, newState];
+    setMoveHistory(newHistory);
+
+    if (isGameOver) {
+      setWinner(winResult);
+      setGameState('finished');
+      processGameEndRewards(winResult);
+      pushGameState({ board: currentBoard, controlled: currentControlled, winner: winResult, gameState: 'finished', promotionState: null, turnCount: nextTurnCount, moveHistory: newHistory });
+    } else {
+      pushGameState({ board: currentBoard, controlled: currentControlled, turnIndex: nextIndex, promotionState: null, timeLeft, turnCount: nextTurnCount, moveHistory: newHistory });
+    }
+  };
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return "∞";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const currentTheme = THEMES[theme] || THEMES.medieval;
+
+  const themeVars = {
+    '--bg-app': currentTheme.appBg,
+    '--bg-panel': currentTheme.panelBg,
+    '--border-panel': currentTheme.panelBorder,
+    '--border-width': currentTheme.borderWidth,
+    '--text-main': currentTheme.textMain,
+    '--text-muted': currentTheme.textMuted,
+    '--accent-primary': currentTheme.accentPrimary,
+    '--accent-text': currentTheme.accentText,
+    '--font-family': currentTheme.font,
+  };
+
+  // --- RENDER HUB (MAIN MENU) ---
+  if (gameState === 'hub') {
+    return (
+      <div className="themed-app min-h-screen flex flex-col p-6 items-center selection:bg-none transition-colors duration-500" style={themeVars}>
+        
+        <style>{`
+          .themed-app { background: var(--bg-app); font-family: var(--font-family); color: var(--text-main); }
+          .themed-panel { background: var(--bg-panel); border: var(--border-width) solid var(--border-panel); box-shadow: 0 10px 25px rgba(0,0,0,0.3); color: var(--text-main); }
+          .themed-card { background: var(--bg-panel); border: 1px solid var(--border-panel); filter: brightness(0.95); transition: all 0.2s; }
+          .themed-card:hover { filter: brightness(1.05); border-color: var(--accent-primary); }
+          .themed-text-muted { color: var(--text-muted); }
+          .themed-btn { background: var(--accent-primary); color: var(--accent-text); border: 2px solid var(--border-panel); font-weight: bold; transition: all 0.2s; }
+          .themed-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+          .themed-select { background: var(--bg-panel); border: 1px solid var(--border-panel); color: var(--text-main); font-family: var(--font-family); outline: none; }
+          .themed-select:focus { border-color: var(--accent-primary); }
+        `}</style>
+
+        {toast && <div className="fixed top-6 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 animate-bounce font-bold">{toast}</div>}
+        
+        <div className="max-w-4xl w-full">
+          <div className="themed-panel rounded-2xl p-4 mb-6 flex justify-between items-center">
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-2">
+              <Crown className="text-yellow-500 drop-shadow-md" size={32} /> KANI
+            </h1>
+            <div className="flex gap-4">
+               <div className="flex flex-col items-end">
+                 <span className="text-[10px] themed-text-muted font-bold uppercase tracking-widest" title="Local play rewards; paid balance is managed in the secure Coin Shop.">Practice Coins</span>
+                 <div className="flex items-center gap-1 font-black text-yellow-600 text-lg drop-shadow-sm">
+                   <Coins size={18}/> {profile.coins}
+                 </div>
+               </div>
+               <div className="flex flex-col items-end pl-4 border-l" style={{ borderColor: 'var(--border-panel)' }}>
+                 <span className="text-[10px] themed-text-muted font-bold uppercase tracking-widest">Global ELO</span>
+                 <div className="flex gap-2">
+                   <span className="font-bold text-sm" title="FFA ELO">⚔️ {profile.elo.ffa}</span>
+                   <span className="font-bold text-sm" title="Teams ELO">🤝 {profile.elo.teams}</span>
+                   <span className="font-bold text-sm" title="Blitz ELO">⚡ {profile.elo.blitz}</span>
+                 </div>
+               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+             <div className="md:col-span-8 flex flex-col gap-6">
+                <div className="themed-panel p-6 rounded-3xl flex flex-col gap-4">
+                   <h2 className="text-lg font-bold themed-text-muted uppercase tracking-widest flex items-center gap-2">
+                     <Play size={20}/> Skirmish Modes
+                   </h2>
+                   
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                     <button onClick={() => prepRoom('ffa')} className="themed-card flex flex-col items-center justify-center p-6 rounded-2xl group">
+                       <Swords size={40} className="text-emerald-600 mb-3 group-hover:scale-110 transition-transform drop-shadow-md" />
+                       <span className="font-black text-lg">FFA</span>
+                       <span className="text-xs themed-text-muted font-medium">Free For All</span>
+                     </button>
+                     <button onClick={() => prepRoom('teams')} className="themed-card flex flex-col items-center justify-center p-6 rounded-2xl group">
+                       <Handshake size={40} className="text-blue-600 mb-3 group-hover:scale-110 transition-transform drop-shadow-md" />
+                       <span className="font-black text-lg">Teams</span>
+                       <span className="text-xs themed-text-muted font-medium">2v2 Alliances</span>
+                     </button>
+                     <button onClick={() => prepRoom('blitz')} className="themed-card flex flex-col items-center justify-center p-6 rounded-2xl group">
+                       <Zap size={40} className="text-orange-600 mb-3 group-hover:scale-110 transition-transform drop-shadow-md" />
+                       <span className="font-black text-lg">Blitz</span>
+                       <span className="text-xs themed-text-muted font-medium">1 Min Fast Paced</span>
+                     </button>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className={`p-6 rounded-3xl shadow-lg border-[3px] flex flex-col justify-between transition-transform cursor-pointer ${isDailyCompleted ? 'themed-panel opacity-80' : 'themed-btn'}`}
+                       onClick={() => !isDailyCompleted && startPuzzle(dailyPuzzle, true)}>
+                     <div>
+                       <div className="flex justify-between items-start mb-2">
+                         <h2 className="text-xl font-black flex items-center gap-2 drop-shadow-md"><Calendar/> Daily Kani</h2>
+                         {isDailyCompleted && <div className="bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded drop-shadow-sm">DONE</div>}
+                       </div>
+                       <p className={isDailyCompleted ? "themed-text-muted" : "opacity-90 font-bold"}>{dailyPuzzle.title}</p>
+                     </div>
+                     <div className={`mt-6 font-black flex items-center gap-2 drop-shadow-md ${isDailyCompleted ? 'themed-text-muted' : 'text-yellow-200'}`}>
+                       <Coins size={20}/> +{dailyPuzzle.reward} Coins
+                     </div>
+                  </div>
+
+                  <button onClick={() => setGameState('puzzle_menu')} className="themed-card p-6 rounded-3xl text-left flex flex-col justify-between group">
+                     <div>
+                       <h2 className="text-xl font-black flex items-center gap-2 mb-2"><Puzzle className="text-purple-600 drop-shadow-sm"/> Campaign</h2>
+                       <p className="themed-text-muted">Train against custom scenarios.</p>
+                     </div>
+                     <div className="mt-6 font-bold group-hover:translate-x-2 transition-transform">
+                       View Puzzles →
+                     </div>
+                  </button>
+                </div>
+             </div>
+
+             <div className="md:col-span-4 flex flex-col gap-6">
+                <div className="themed-panel p-6 rounded-3xl">
+                  <h2 className="text-lg font-bold themed-text-muted uppercase tracking-widest flex items-center gap-2 mb-4">
+                     <ShoppingBag size={20}/> Kani Shop
+                  </h2>
+                  <div className="flex flex-col gap-3">
+                    {Object.entries(THEMES).map(([k, v]) => {
+                      const isUnlocked = profile.unlockedThemes.includes(k);
+                      return (
+                        <div key={k} className={`p-3 rounded-xl border flex items-center justify-between ${isUnlocked ? 'themed-panel opacity-80' : 'themed-card'}`}>
+                          <div className="flex items-center gap-2">
+                            <Palette size={16} className={isUnlocked ? 'text-emerald-600' : 'themed-text-muted'}/>
+                            <span className={`font-bold`}>{v.name}</span>
+                          </div>
+                          {isUnlocked ? (
+                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-1 rounded shadow-sm border border-emerald-300">OWNED</span>
+                          ) : (
+                            <button onClick={() => buyTheme(k)} className="flex items-center gap-1 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 border border-yellow-400 font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors">
+                              <Coins size={12}/> {v.price}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="themed-panel p-6 rounded-3xl" style={{ filter: 'brightness(0.9)' }}>
+                  <h2 className="text-lg font-bold themed-text-muted uppercase tracking-widest flex items-center gap-2 mb-2">
+                     <Users size={20}/> Community Hub
+                  </h2>
+                  <p className="text-sm themed-text-muted font-semibold mb-4">Connect with players and share your grandmaster strategies.</p>
+                  <button className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white border-2 border-[#3c45a5] font-bold py-3 rounded-xl shadow-md transition-colors font-sans">
+                    Join Discord Server
+                  </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- PUZZLE MENU RENDER ---
+  if (gameState === 'puzzle_menu') {
+    return (
+      <div className="themed-app min-h-screen flex flex-col p-6 items-center justify-center selection:bg-none transition-colors duration-500" style={themeVars}>
+        <style>{`
+          .themed-app { background: var(--bg-app); font-family: var(--font-family); color: var(--text-main); }
+          .themed-panel { background: var(--bg-panel); border: var(--border-width) solid var(--border-panel); box-shadow: 0 10px 25px rgba(0,0,0,0.3); color: var(--text-main); }
+          .themed-card { background: var(--bg-panel); border: 1px solid var(--border-panel); filter: brightness(0.95); transition: all 0.2s; }
+          .themed-btn { background: var(--accent-primary); color: var(--accent-text); border: 2px solid var(--border-panel); font-weight: bold; transition: all 0.2s; }

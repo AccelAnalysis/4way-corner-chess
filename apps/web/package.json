@@ -1,0 +1,32 @@
+{
+  "name": "@kani/web",
+  "version": "0.3.0-alpha",
+  "private": true,
+  "scripts": {
+    "materialize": "node scripts/materialize-kani.mjs",
+    "predev": "npm run materialize",
+    "dev": "next dev",
+    "prebuild": "npm run materialize",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run test && npm run build"
+  },
+  "dependencies": {
+    "firebase": "11.10.0",
+    "firebase-admin": "14.2.0",
+    "lucide-react": "0.468.0",
+    "next": "15.5.21",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "stripe": "22.1.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "10.4.21",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.17"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
