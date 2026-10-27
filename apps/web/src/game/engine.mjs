@@ -358,7 +358,7 @@ export function applyMove(state, { seat, from, to, promotion = 'q' }, nowMs = Da
     controlled,
     timeRemaining,
     turnCount: Number(state.turnCount || 0) + 1,
-    noProgressPlies: capturedPiece || sourcePiece.type === 'p' ? 0 : Number(state.noProgressPlies || 0) + 1,
+    noProgressPlies: capturedPiece || sourcePiece.type === 'p' || finalized.autoEliminated.length ? 0 : Number(state.noProgressPlies || 0) + 1,
     version: Number(state.version || 0) + 1,
     lastMove: {
       seat,
