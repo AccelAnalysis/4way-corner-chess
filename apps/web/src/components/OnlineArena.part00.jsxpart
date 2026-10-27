@@ -29,6 +29,7 @@ import {
   getValidMoveIndices,
   isPromotionSquare,
 } from '../game/engine.mjs';
+import { lastMoveVisual, pieceTransform } from '../experience/move-visuals.mjs';
 
 const SYMBOLS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const SEAT_STYLES = {
