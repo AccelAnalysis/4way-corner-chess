@@ -36,6 +36,7 @@
     setCaptureEffects([]);
     setChatMessages([]);
     setMoveHistory([{ board: newBoard, controlled: initControl, turnIndex: 0 }]);
+    setLastVisualMove(null);
     repetitionHistoryRef.current = [positionSignature({ board: newBoard.flat(), controlled: initControl, turnIndex: 0, allianceMode })];
     quietMoveRef.current = 0;
     setActivePuzzle(null);
@@ -72,6 +73,7 @@
     setCaptureEffects([]);
     setChatMessages([]);
     setMoveHistory([{ board: initialBoard, controlled: initControl, turnIndex: puzzle.turnIndex }]);
+    setLastVisualMove(null);
     setTimeLeft({ W: null, B: null, K: null, R: null }); 
     setGameState('playing');
   };
@@ -264,6 +266,7 @@
     const newBoard = board.map(row => [...row]);
     const movingPiece = { ...newBoard[sr][sc] }; 
     const targetPiece = newBoard[r][c];
+    setLastVisualMove({ from: sr * BOARD_SIZE + sc, to: r * BOARD_SIZE + c });
     let newControlled = { ...controlled };
 
     if (!activePuzzle) quietMoveRef.current = targetPiece || movingPiece.type === 'p' ? 0 : quietMoveRef.current + 1;
