@@ -82,8 +82,8 @@ function ExperienceNav() {
   return (
     <header className="absolute inset-x-0 top-0 z-30">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <a href="#top" className="kani-heading text-2xl text-amber-200" aria-label="Kani home">KANI</a>
-        <Link href="/account" className="text-sm text-stone-200 hover:text-amber-200">Sign in</Link>
+        <a href="#top" className="kani-heading text-2xl text-[#805022]" aria-label="Kani home">KANI</a>
+        <Link href="/account" className="text-sm text-stone-200 hover:text-[#805022]">Sign in</Link>
       </div>
     </header>
   );
@@ -96,7 +96,7 @@ function CinematicBoard() {
     [18, ['B', '♜']], [21, ['W', '♜']], [42, ['K', '♜']], [45, ['R', '♜']],
   ]);
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[620px] rotate-[2deg] overflow-hidden rounded-[2rem] border-[12px] border-stone-950/90 bg-stone-950 shadow-[0_45px_120px_rgba(0,0,0,0.7)]" aria-hidden="true">
+    <div className="relative mx-auto aspect-square w-full max-w-[620px] rotate-[2deg] overflow-hidden rounded-[2rem] border-[12px] border-stone-950/90 bg-[#d7bd96] shadow-[0_45px_120px_rgba(0,0,0,0.7)]" aria-hidden="true">
       <div className="absolute inset-0 grid grid-cols-8">
         {Array.from({ length: 64 }, (_, index) => {
           const piece = pieces.get(index);
@@ -105,7 +105,7 @@ function CinematicBoard() {
           return (
             <div key={index} className={`relative grid place-items-center ${(row + column) % 2 === 0 ? 'bg-[#d9c7a4]' : 'bg-[#725039]'}`}>
               {piece && (
-                <span className={`kani-cinematic-piece grid h-[70%] w-[70%] place-items-center rounded-full border-2 text-[clamp(1.3rem,4vw,3rem)] shadow-xl ${piece[0] === 'W' ? 'border-amber-200 bg-stone-50 text-stone-900' : piece[0] === 'B' ? 'border-blue-300 bg-blue-600 text-white' : piece[0] === 'K' ? 'border-stone-500 bg-stone-950 text-stone-100' : 'border-red-300 bg-red-600 text-white'}`}>{piece[1]}</span>
+                <span className={`kani-cinematic-piece grid h-[70%] w-[70%] place-items-center rounded-full border-2 text-[clamp(1.3rem,4vw,3rem)] shadow-xl ${piece[0] === 'W' ? 'border-amber-200 bg-stone-50 text-stone-900' : piece[0] === 'B' ? 'border-blue-300 bg-blue-600 text-[#2f251c]' : piece[0] === 'K' ? 'border-stone-500 bg-[#d7bd96] text-stone-100' : 'border-red-300 bg-red-600 text-[#2f251c]'}`}>{piece[1]}</span>
               )}
             </div>
           );
@@ -126,10 +126,10 @@ function CinematicBoard() {
 
 function MarketingLanding({ onPlay, onOpenHub, returning }) {
   return (
-    <main id="top" className="relative min-h-[100svh] overflow-hidden bg-[#100e0c] text-stone-100">
+    <main id="top" className="relative min-h-[100svh] overflow-hidden bg-[#f7f0e5] text-[#32281f]">
       <ExperienceNav />
       <section className="relative grid min-h-[100svh] items-center px-5 pb-12 pt-24 sm:px-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_45%,rgba(119,80,39,0.24),transparent_45%),linear-gradient(135deg,#211710,#100e0c_65%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_40%,#f4d5a8,transparent_55%),linear-gradient(135deg,#fff9eb,#f3e7d1)]" />
         <div className="relative mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="max-w-xl">
             <h1 className="text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
@@ -187,20 +187,20 @@ function TutorialMatch({ onComplete, onSkip }) {
   }
 
   return (
-    <main className="min-h-[100svh] bg-[radial-gradient(circle_at_top,#3c2819,#080706_72%)] p-4 text-stone-100 sm:p-6">
+    <main className="min-h-[100svh] bg-[#f7f0e5] p-4 text-[#32281f] sm:p-6">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 py-2">
-        <div className="kani-heading text-2xl text-amber-200">KANI</div>
-        <button onClick={onSkip} className="text-sm text-stone-300 underline underline-offset-4 hover:text-white">Skip</button>
+        <div className="kani-heading text-2xl text-[#805022]">KANI</div>
+        <button onClick={onSkip} className="text-sm text-stone-700 underline underline-offset-4 hover:text-[#2f251c]">Skip</button>
       </div>
       <section className="mx-auto grid max-w-6xl items-center gap-8 py-8 lg:grid-cols-[0.72fr_1.28fr]">
         <div>
           <h1 className="text-4xl sm:text-6xl">Capture the blue king.</h1>
           <div className="mt-6 flex items-center gap-4 text-amber-100">
             <span className="text-5xl" aria-hidden="true">♜</span>
-            <ArrowRight size={24} className="text-amber-300" aria-hidden="true"/>
+            <ArrowRight size={24} className="text-[#925b24]" aria-hidden="true"/>
             <span className="text-5xl text-blue-300" aria-hidden="true">♚</span>
           </div>
-          <p className="mt-6 text-lg text-stone-300" aria-live="polite">{message}</p>
+          <p className="mt-6 text-lg text-stone-700" aria-live="polite">{message}</p>
         </div>
         <div className="relative mx-auto w-full max-w-[680px]">
           <div className="grid aspect-square grid-cols-8 overflow-hidden rounded-[1.5rem] border-[10px] border-stone-950 shadow-[0_35px_100px_rgba(0,0,0,0.7)]">
@@ -217,12 +217,12 @@ function TutorialMatch({ onComplete, onSkip }) {
                   className={`relative grid place-items-center ${(row + column) % 2 === 0 ? 'bg-[#d9c7a4]' : 'bg-[#725039]'} ${isSelected ? 'ring-4 ring-inset ring-amber-300' : ''} ${isRook && selected === null ? 'after:absolute after:inset-2 after:animate-pulse after:rounded-xl after:border-4 after:border-amber-300' : ''} ${isKing && selected !== null ? 'after:absolute after:inset-2 after:animate-pulse after:rounded-xl after:border-4 after:border-blue-300' : ''}`}
                   aria-label={`Square ${index + 1}${piece ? ` containing ${piece.color === 'W' ? 'ivory' : 'blue'} ${piece.type === 'k' ? 'king' : 'rook'}` : ''}`}
                 >
-                  {piece && <span className={`grid h-[72%] w-[72%] place-items-center rounded-full border-2 text-[clamp(1.6rem,7vw,4rem)] shadow-xl ${piece.color === 'W' ? 'border-amber-200 bg-stone-50 text-stone-900' : 'border-blue-300 bg-blue-600 text-white'}`}>{PIECE_SYMBOLS[piece.type]}</span>}
+                  {piece && <span className={`grid h-[72%] w-[72%] place-items-center rounded-full border-2 text-[clamp(1.6rem,7vw,4rem)] shadow-xl ${piece.color === 'W' ? 'border-amber-200 bg-stone-50 text-stone-900' : 'border-blue-300 bg-blue-600 text-[#2f251c]'}`}>{PIECE_SYMBOLS[piece.type]}</span>}
                 </button>
               );
             })}
           </div>
-          {complete && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-stone-950/50"><Trophy className="text-amber-300" size={70} /></div>}
+          {complete && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#fff4db]/65"><Trophy className="text-[#925b24]" size={70} /></div>}
         </div>
       </section>
     </main>
@@ -233,11 +233,11 @@ function HubUtilityBar({ onIntroduction }) {
   return (
     <header className="sticky top-0 z-[120] border-b border-white/10 bg-[#100e0c]/95 text-stone-100 backdrop-blur">
       <div className="mx-auto flex min-h-14 max-w-6xl items-center justify-between gap-5 px-5">
-        <button onClick={onIntroduction} className="kani-heading text-xl text-amber-200">KANI</button>
+        <button onClick={onIntroduction} className="kani-heading text-xl text-[#805022]">KANI</button>
         <nav className="flex items-center gap-5 text-sm" aria-label="Game navigation">
-          <Link href="/online" className="hover:text-amber-200">Online</Link>
-          <Link href="/shop" className="hover:text-amber-200">Shop</Link>
-          <Link href="/account" className="hover:text-amber-200">Account</Link>
+          <Link href="/online" className="hover:text-[#805022]">Online</Link>
+          <Link href="/shop" className="hover:text-[#805022]">Shop</Link>
+          <Link href="/account" className="hover:text-[#805022]">Account</Link>
         </nav>
       </div>
     </header>
@@ -246,21 +246,21 @@ function HubUtilityBar({ onIntroduction }) {
 
 function PostMatchDecision({ onContinueGuest, onReplay }) {
   return (
-    <main className="grid min-h-[100svh] place-items-center bg-[#100e0c] p-5 text-stone-100">
+    <main className="grid min-h-[100svh] place-items-center bg-[#f7f0e5] p-5 text-[#32281f]">
       <section className="w-full max-w-xl text-center">
-        <Trophy className="mx-auto text-amber-300" size={66} strokeWidth={1.4} />
+        <Trophy className="mx-auto text-[#925b24]" size={66} strokeWidth={1.4} />
         <h1 className="mt-6 text-5xl">First victory!</h1>
-        <p className="mt-4 flex items-center justify-center gap-2 text-2xl text-amber-200">
+        <p className="mt-4 flex items-center justify-center gap-2 text-2xl text-[#805022]">
           <Coins size={25} /> +{FIRST_VICTORY_PRACTICE_REWARD} Practice Coins
         </p>
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
           <button onClick={onContinueGuest} className="kani-action">Keep playing <ArrowRight size={18}/></button>
           <Link href="/account?next=%2F%3Fhub%3D1&source=first-victory"
-            className="flex min-h-12 items-center justify-center border-b border-stone-500 px-5 text-stone-100 hover:text-amber-200">
+            className="flex min-h-12 items-center justify-center border-b border-stone-500 px-5 text-stone-100 hover:text-[#805022]">
             Save my progress
           </Link>
         </div>
-        <button onClick={onReplay} className="mt-6 text-sm text-stone-400 underline underline-offset-4 hover:text-stone-200">Replay lesson</button>
+        <button onClick={onReplay} className="mt-6 text-sm text-stone-600 underline underline-offset-4 hover:text-stone-200">Replay lesson</button>
       </section>
     </main>
   );
