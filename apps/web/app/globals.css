@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --kani-heading: Aharoni, Aptos, sans-serif;
   --kani-body: "Al Bayan", Aptos, sans-serif;
 }
@@ -13,8 +13,8 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   margin: 0;
-  background: #100e0c;
-  color: #f1e9d7;
+  background: #f7f0e5;
+  color: #32281f;
   font-family: var(--kani-body);
   line-height: 1.4;
 }
