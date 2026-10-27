@@ -251,7 +251,7 @@ function determineWinner(controlled, allianceMode) {
   return ['B', 'W'].includes(first) ? 'Blue & White Alliance' : 'Black & Red Alliance';
 }
 
-function isPromotionSquare(piece, toIndex) {
+export function isPromotionSquare(piece, toIndex) {
   if (piece.type !== 'p') return false;
   const { row, column } = boardPosition(toIndex);
   const originColor = piece.originColor || piece.color;
