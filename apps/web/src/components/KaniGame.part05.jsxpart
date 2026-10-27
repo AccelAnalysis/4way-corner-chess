@@ -8,6 +8,8 @@
                   const isValidMove = validMoves.some(m => m.r === r && m.c === c) && gameState === 'playing';
                   const isDanger = enemyThreats.has(`${r},${c}`);
                   const isCheck = kingsInCheck.some(k => k.r === r && k.c === c);
+                  const isLastSource = gameState === 'playing' && lastVisualMove?.from === r * BOARD_SIZE + c;
+                  const isLastDestination = gameState === 'playing' && lastVisualMove?.to === r * BOARD_SIZE + c;
 
                   return (
                     <div
@@ -19,6 +21,9 @@
                         ${isLight ? currentTheme.boardLight : currentTheme.boardDark}
                       `}
                     >
+                      {(isLastSource || isLastDestination) && (
+                        <div className={`pointer-events-none absolute inset-0 ${isLastDestination ? 'bg-amber-300/35 ring-2 ring-inset ring-amber-500/70' : 'bg-amber-200/20'}`} />
+                      )}
                       {isSelected && <div className="absolute inset-0 bg-yellow-400/40 mix-blend-overlay" />}
                       {isDanger && !isCheck && (
                         <div className="absolute inset-0 bg-red-600/30 pointer-events-none flex items-center justify-center mix-blend-multiply">
@@ -58,12 +63,12 @@
                     onClick={(e) => { e.stopPropagation(); if (gameState === 'playing') handleSquareClick(piece.r, piece.c); }}
                     className={`
                       absolute w-[60px] h-[60px] flex items-center justify-center
-                      transition-all duration-500 ease-out z-30
+                      kani-board-piece z-30
                       ${(playerTypes[currentPlayer] === 'human' && !winner && !promotionState && gameState === 'playing') ? 'cursor-pointer hover:brightness-110' : 'cursor-default'}
                       ${isSelected ? 'scale-110 -translate-y-1' : ''}
                       ${isThreatened && theme === 'neon' ? 'animate-pulse' : ''}
                     `}
-                    style={{ transform: `translate(${piece.c * 60}px, ${piece.r * 60}px)` }}
+                    style={{ transform: pieceTransform(piece.r * BOARD_SIZE + piece.c) }}
                   >
                     <GamePiece type={piece.type} color={piece.color} themeObj={THEMES[playerThemes[piece.color]] || currentTheme} />
                   </div>
