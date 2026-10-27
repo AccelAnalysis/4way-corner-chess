@@ -166,7 +166,7 @@ export default function AccountGateway() {
 
   if (!firebaseReady) {
     return (
-      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#100e0c] px-5 text-stone-100">
+      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] px-5 text-[#32281f]">
         <section className="w-full max-w-md text-center">
           <h1 className="text-4xl">Accounts unavailable</h1>
           <Link href="/?hub=1" className="kani-action mt-7">Play locally <ArrowRight size={18}/></Link>
@@ -179,11 +179,11 @@ export default function AccountGateway() {
 
   if (isRegistered) {
     return (
-      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#100e0c] px-5 text-stone-100">
+      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] px-5 text-[#32281f]">
         <section className="w-full max-w-md text-center">
           <BadgeCheck className="mx-auto text-amber-300" size={43}/>
           <h1 className="mt-5 text-4xl">Signed in</h1>
-          <p className="mt-3 text-stone-300">{user.displayName || user.email}</p>
+          <p className="mt-3 text-stone-700">{user.displayName || user.email}</p>
           <Link href={nextPath} className="kani-action mt-7">Play <ArrowRight size={19}/></Link>
         </section>
       </main>
@@ -191,51 +191,51 @@ export default function AccountGateway() {
   }
 
   return (
-    <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#100e0c] px-5 py-12 text-stone-100">
+    <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] px-5 py-12 text-[#32281f]">
       <section className="w-full max-w-md">
         <h1 className="mb-7 text-4xl sm:text-5xl">{mode === 'create' ? 'Join KANI' : 'Welcome back'}</h1>
-        <div className="flex border-b border-white/15 text-sm">
+        <div className="flex border-b border-[#cdb99a] text-sm">
           <button onClick={() => { setMode('create'); setMessage(''); }}
             aria-current={mode === 'create' ? 'page' : undefined}
-            className={`flex-1 border-b-2 px-3 py-3 ${mode === 'create' ? 'border-amber-300 text-amber-200' : 'border-transparent text-stone-400'}`}>Create account</button>
+            className={`flex-1 border-b-2 px-3 py-3 ${mode === 'create' ? 'border-amber-300 text-[#87501b]' : 'border-transparent text-stone-600'}`}>Create account</button>
           <button onClick={() => { setMode('signin'); setMessage(''); }}
             aria-current={mode === 'signin' ? 'page' : undefined}
-            className={`flex-1 border-b-2 px-3 py-3 ${mode === 'signin' ? 'border-amber-300 text-amber-200' : 'border-transparent text-stone-400'}`}>Sign in</button>
+            className={`flex-1 border-b-2 px-3 py-3 ${mode === 'signin' ? 'border-amber-300 text-[#87501b]' : 'border-transparent text-stone-600'}`}>Sign in</button>
         </div>
         <form onSubmit={mode === 'create' ? createAccount : signIn} className="mt-7 space-y-5">
           {mode === 'create' && (
             <label className="block text-sm">Display name
               <input value={displayName} onChange={(event) => setDisplayName(event.target.value)}
                 autoComplete="nickname" maxLength={40} required placeholder="Your player name"
-                className="mt-2 w-full rounded-md border border-white/20 bg-stone-900 px-4 py-3 text-white"/>
+                className="mt-2 w-full rounded-md border border-[#cdb99a] bg-white px-4 py-3 text-[#2f251c]"/>
             </label>
           )}
           <label className="block text-sm">Email
             <input value={email} onChange={(event) => setEmail(event.target.value)}
               autoComplete="email" type="email" required placeholder="you@example.com"
-              className="mt-2 w-full rounded-md border border-white/20 bg-stone-900 px-4 py-3 text-white"/>
+              className="mt-2 w-full rounded-md border border-[#cdb99a] bg-white px-4 py-3 text-[#2f251c]"/>
           </label>
           <label className="block text-sm">Password
             <div className="relative mt-2">
               <input value={password} onChange={(event) => setPassword(event.target.value)}
                 autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
                 type={showPassword ? 'text' : 'password'} required
-                className="w-full rounded-md border border-white/20 bg-stone-900 px-4 py-3 pr-12 text-white"/>
+                className="w-full rounded-md border border-[#cdb99a] bg-white px-4 py-3 pr-12 text-[#2f251c]"/>
               <button type="button" onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-700"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}>
                 {showPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
               </button>
             </div>
           </label>
-          {mode === 'create' && <p className="text-sm text-stone-400" id="password-help">8+ characters, including a letter and number.</p>}
-          {message && <p role="status" className="text-sm text-amber-200">{message}</p>}
+          {mode === 'create' && <p className="text-sm text-stone-600" id="password-help">8+ characters, including a letter and number.</p>}
+          {message && <p role="status" className="text-sm text-[#87501b]">{message}</p>}
           <button type="submit" disabled={busy || (mode === 'create' && !passwordReady)}
             className="kani-action w-full">{busy ? <Loader2 size={19} className="animate-spin"/> : null}{mode === 'create' ? 'Create account' : 'Sign in'}</button>
           {mode === 'signin' && <button type="button" onClick={resetPassword} disabled={busy}
-            className="w-full text-sm text-stone-300 underline underline-offset-4 hover:text-white">Forgot password?</button>}
+            className="w-full text-sm text-stone-700 underline underline-offset-4 hover:text-[#2f251c]">Forgot password?</button>}
         </form>
-        <Link href={nextPath} className="mt-7 inline-block text-sm text-stone-400 underline underline-offset-4 hover:text-white">Continue as guest</Link>
+        <Link href={nextPath} className="mt-7 inline-block text-sm text-[#58432e] underline underline-offset-4 hover:text-[#2f251c]">Continue as guest</Link>
       </section>
     </main>
   );
