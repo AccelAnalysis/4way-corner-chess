@@ -6,7 +6,7 @@ import { signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'fi
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, appId } from '../firebase/client';
 import { getValidMoveIndices, positionSignature } from '../game/engine.mjs';
-import { pieceTransform } from '../experience/move-visuals.mjs';
+import { MOVE_DURATION_MS, pieceTransform } from '../experience/move-visuals.mjs';
 
 const BOARD_SIZE = 8;
 const PIECE_SYMBOLS = { r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', p: '♟' };
