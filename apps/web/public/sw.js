@@ -23,7 +23,18 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || PRIVATE_PATHS.test(url.pathname)) return;
+  if (url.origin !== self.location.origin) return;
+  // Private routes are network-only. Show the generic offline screen if the
+  // network fails, but never cache an identity, match, or payment response.
+  if (PRIVATE_PATHS.test(url.pathname)) {
+    if (request.mode === 'navigate') {
+      event.respondWith(fetch(request).catch(async () => {
+        const cache = await caches.open(VERSION);
+        return await cache.match('/offline') || Response.error();
+      }));
+    }
+    return;
+  }
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).then(async (response) => {
