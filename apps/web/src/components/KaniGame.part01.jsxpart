@@ -43,6 +43,7 @@
   const [controlled, setControlled] = useState({ W: ['W'], B: ['B'], K: ['K'], R: ['R'] });
   const [selected, setSelected] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
+  const [lastVisualMove, setLastVisualMove] = useState(null);
   const [winner, setWinner] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ W: 300, B: 300, K: 300, R: 300 });
   const [promotionState, setPromotionState] = useState(null); 
