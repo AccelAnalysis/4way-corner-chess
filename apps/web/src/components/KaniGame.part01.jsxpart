@@ -44,6 +44,27 @@
   const [selected, setSelected] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
   const [lastVisualMove, setLastVisualMove] = useState(null);
+  const [showMatchResult, setShowMatchResult] = useState(false);
+  const [showPromotionOptions, setShowPromotionOptions] = useState(false);
+
+  // Finish displaying the final move before covering the board with a modal.
+  useEffect(() => {
+    if (!winner || gameState === 'replay') {
+      setShowMatchResult(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setShowMatchResult(true), MOVE_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [winner, gameState]);
+
+  useEffect(() => {
+    if (!promotionState || gameState === 'replay') {
+      setShowPromotionOptions(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setShowPromotionOptions(true), MOVE_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [promotionState, gameState]);
   const [winner, setWinner] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ W: 300, B: 300, K: 300, R: 300 });
   const [promotionState, setPromotionState] = useState(null); 
