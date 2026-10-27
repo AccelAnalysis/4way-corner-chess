@@ -166,85 +166,76 @@ export default function AccountGateway() {
 
   if (!firebaseReady) {
     return (
-      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[radial-gradient(circle_at_top,#3d2818,#080706_70%)] p-5 text-stone-100">
-        <section className="w-full max-w-3xl rounded-[2rem] border border-amber-400/30 bg-stone-950/85 p-8 shadow-2xl">
-          <WifiOff className="text-amber-300" size={42} />
-          <h1 className="mt-5 text-4xl font-black">Account services are staged, not exposed.</h1>
-          <p className="mt-4 leading-7 text-stone-300">The account-creation and anonymous-to-registered upgrade flow is implemented, but this deployment has no Kani Firebase credentials. Local guest play remains available without an account.</p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link href={nextPath} className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-amber-300 px-5 font-black text-stone-950">Continue as guest</Link>
-            <Link href="/" className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl border border-white/15 px-5 font-black">Return to introduction</Link>
-          </div>
+      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] px-5 text-[#32281f]">
+        <section className="w-full max-w-md text-center">
+          <h1 className="text-4xl">Accounts unavailable</h1>
+          <Link href="/?hub=1" className="kani-action mt-7">Play locally <ArrowRight size={18}/></Link>
         </section>
       </main>
     );
   }
 
-  if (loading) {
-    return <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#080706] text-amber-300"><Loader2 className="animate-spin" size={44} /></main>;
-  }
+  if (loading) return <main className="grid min-h-[60svh] place-items-center"><Loader2 className="animate-spin text-amber-300" size={34}/></main>;
 
   if (isRegistered) {
     return (
-      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[radial-gradient(circle_at_top,#3d2818,#080706_70%)] p-5 text-stone-100">
-        <section className="w-full max-w-xl rounded-[2rem] border border-emerald-400/30 bg-stone-950/85 p-8 text-center shadow-2xl">
-          <BadgeCheck className="mx-auto text-emerald-300" size={52} />
-          <h1 className="mt-5 text-4xl font-black">Your progress is protected.</h1>
-          <p className="mt-4 text-stone-300">Signed in as <strong className="text-white">{user.displayName || user.email}</strong>.</p>
-          <Link href={nextPath} className="mt-7 flex min-h-14 items-center justify-center gap-2 rounded-xl bg-amber-300 px-5 font-black text-stone-950">Continue to Kani <ArrowRight /></Link>
+      <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] px-5 text-[#32281f]">
+        <section className="w-full max-w-md text-center">
+          <BadgeCheck className="mx-auto text-amber-300" size={43}/>
+          <h1 className="mt-5 text-4xl">Signed in</h1>
+          <p className="mt-3 text-stone-700">{user.displayName || user.email}</p>
+          <Link href={nextPath} className="kani-action mt-7">Play <ArrowRight size={19}/></Link>
         </section>
       </main>
     );
   }
 
   return (
-    <main className="min-h-[calc(100svh-56px)] bg-[radial-gradient(circle_at_top,#3d2818,#080706_70%)] p-5 text-stone-100">
-      <section className="mx-auto grid max-w-6xl gap-8 py-10 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="rounded-[2rem] border border-amber-400/25 bg-amber-300/[0.06] p-7 sm:p-9">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-300">Free Kani account</p>
-          <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-6xl">Create it when the value is clear.</h1>
-          <p className="mt-5 text-lg leading-8 text-stone-300">Local play stays free without an account. Create one for features that need persistent identity and secure server records.</p>
-          <div className="mt-8 space-y-4">
-            {[
-              [Users, 'Online multiplayer', 'Create and join private rooms with a stable player identity.'],
-              [Sparkles, 'Cross-device cosmetics', 'Keep owned themes and future capture animations with your profile.'],
-              [ShieldCheck, 'Protected Kani Coins', 'Balances and purchases live in a server ledger—not browser storage.'],
-              [LockKeyhole, 'No gameplay advantage', 'Accounts and purchases never change legal moves or piece strength.'],
-            ].map(([Icon, title, copy]) => (
-              <div key={title} className="flex gap-4 rounded-2xl border border-white/10 bg-black/20 p-4"><Icon className="mt-1 shrink-0 text-amber-300" size={21} /><div><h2 className="font-black">{title}</h2><p className="mt-1 text-sm leading-6 text-stone-400">{copy}</p></div></div>
-            ))}
-          </div>
-          <Link href={nextPath} className="mt-7 inline-flex items-center gap-2 text-sm font-black text-stone-300 underline underline-offset-4 hover:text-white">Not now—continue as guest <ArrowRight size={16} /></Link>
+    <main className="grid min-h-[calc(100svh-56px)] place-items-center bg-[#f7f0e5] px-5 py-12 text-[#32281f]">
+      <section className="w-full max-w-md">
+        <h1 className="mb-7 text-4xl sm:text-5xl">{mode === 'create' ? 'Join KANI' : 'Welcome back'}</h1>
+        <div className="flex border-b border-[#cdb99a] text-sm">
+          <button onClick={() => { setMode('create'); setMessage(''); }}
+            aria-current={mode === 'create' ? 'page' : undefined}
+            className={`flex-1 border-b-2 px-3 py-3 ${mode === 'create' ? 'border-amber-300 text-[#87501b]' : 'border-transparent text-stone-600'}`}>Create account</button>
+          <button onClick={() => { setMode('signin'); setMessage(''); }}
+            aria-current={mode === 'signin' ? 'page' : undefined}
+            className={`flex-1 border-b-2 px-3 py-3 ${mode === 'signin' ? 'border-amber-300 text-[#87501b]' : 'border-transparent text-stone-600'}`}>Sign in</button>
         </div>
-
-        <div className="rounded-[2rem] border border-white/10 bg-stone-950/90 p-6 shadow-2xl sm:p-9">
-          <div className="grid grid-cols-2 rounded-xl bg-white/5 p-1">
-            <button onClick={() => { setMode('create'); setMessage(''); }} className={`rounded-lg px-4 py-3 font-black ${mode === 'create' ? 'bg-amber-300 text-stone-950' : 'text-stone-300'}`}>Create account</button>
-            <button onClick={() => { setMode('signin'); setMessage(''); }} className={`rounded-lg px-4 py-3 font-black ${mode === 'signin' ? 'bg-amber-300 text-stone-950' : 'text-stone-300'}`}>Sign in</button>
-          </div>
-
-          <form onSubmit={mode === 'create' ? createAccount : signIn} className="mt-7 space-y-5">
-            {mode === 'create' && (
-              <label className="block"><span className="mb-2 block text-sm font-black">Display name</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="nickname" maxLength={40} required className="w-full rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 text-white" placeholder="How players will know you" /></label>
-            )}
-            <label className="block"><span className="mb-2 block text-sm font-black">Email</span><div className="relative"><Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={18} /><input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" type="email" required className="w-full rounded-xl border border-stone-700 bg-stone-900 py-3 pl-10 pr-4 text-white" placeholder="you@example.com" /></div></label>
-            <label className="block"><span className="mb-2 block text-sm font-black">Password</span><div className="relative"><input value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'create' ? 'new-password' : 'current-password'} type={showPassword ? 'text' : 'password'} required className="w-full rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 pr-12 text-white" /><button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400" aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button></div></label>
-
-            {mode === 'create' && (
-              <div className="grid gap-2 text-sm text-stone-400 sm:grid-cols-3">
-                <span className={`flex items-center gap-2 ${passwordChecks.length ? 'text-emerald-300' : ''}`}><Check size={15} /> 8+ characters</span>
-                <span className={`flex items-center gap-2 ${passwordChecks.letter ? 'text-emerald-300' : ''}`}><Check size={15} /> One letter</span>
-                <span className={`flex items-center gap-2 ${passwordChecks.number ? 'text-emerald-300' : ''}`}><Check size={15} /> One number</span>
-              </div>
-            )}
-
-            {message && <p className="rounded-xl border border-blue-400/30 bg-blue-950/40 p-3 text-sm leading-6 text-blue-100" aria-live="polite">{message}</p>}
-
-            <button type="submit" disabled={busy || (mode === 'create' && !passwordReady)} className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-5 font-black text-stone-950 disabled:cursor-not-allowed disabled:opacity-40">{busy ? <Loader2 className="animate-spin" /> : mode === 'create' ? <UserPlus /> : <LockKeyhole />} {mode === 'create' ? 'Create free account' : 'Sign in securely'}</button>
-            {mode === 'signin' && <button type="button" onClick={resetPassword} disabled={busy} className="w-full text-sm font-bold text-stone-400 underline underline-offset-4 hover:text-white">Forgot password?</button>}
-          </form>
-          <p className="mt-6 text-xs leading-5 text-stone-500">Kani does not ask for payment information during account creation. Marketing consent is not bundled into this decision.</p>
-        </div>
+        <form onSubmit={mode === 'create' ? createAccount : signIn} className="mt-7 space-y-5">
+          {mode === 'create' && (
+            <label className="block text-sm">Display name
+              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)}
+                autoComplete="nickname" maxLength={40} required placeholder="Your player name"
+                className="mt-2 w-full rounded-md border border-[#cdb99a] bg-white px-4 py-3 text-[#2f251c]"/>
+            </label>
+          )}
+          <label className="block text-sm">Email
+            <input value={email} onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email" type="email" required placeholder="you@example.com"
+              className="mt-2 w-full rounded-md border border-[#cdb99a] bg-white px-4 py-3 text-[#2f251c]"/>
+          </label>
+          <label className="block text-sm">Password
+            <div className="relative mt-2">
+              <input value={password} onChange={(event) => setPassword(event.target.value)}
+                autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
+                type={showPassword ? 'text' : 'password'} required
+                className="w-full rounded-md border border-[#cdb99a] bg-white px-4 py-3 pr-12 text-[#2f251c]"/>
+              <button type="button" onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-700"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                {showPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
+              </button>
+            </div>
+          </label>
+          {mode === 'create' && <p className="text-sm text-stone-600" id="password-help">8+ characters, including a letter and number.</p>}
+          {message && <p role="status" className="text-sm text-[#87501b]">{message}</p>}
+          <button type="submit" disabled={busy || (mode === 'create' && !passwordReady)}
+            className="kani-action w-full">{busy ? <Loader2 size={19} className="animate-spin"/> : null}{mode === 'create' ? 'Create account' : 'Sign in'}</button>
+          {mode === 'signin' && <button type="button" onClick={resetPassword} disabled={busy}
+            className="w-full text-sm text-stone-700 underline underline-offset-4 hover:text-[#2f251c]">Forgot password?</button>}
+        </form>
+        <Link href={nextPath} className="mt-7 inline-block text-sm text-[#58432e] underline underline-offset-4 hover:text-[#2f251c]">Continue as guest</Link>
       </section>
     </main>
   );

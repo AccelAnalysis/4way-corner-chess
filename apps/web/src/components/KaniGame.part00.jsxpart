@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Trophy, Shield, Skull, Users, Settings, Clock, Cpu, User, RotateCcw, Play, Globe, Link, Palette, Crosshair, Puzzle, Swords, Handshake, ShieldAlert, Target, ShoppingBag, Coins, Share2, Calendar, Zap, Crown, MessageSquare, SkipBack, SkipForward, Pause, FastForward, Sparkles, Castle, Flame, Sun, Tent, Axe } from 'lucide-react';
+import { ArrowRight, Check, Trophy, Shield, Skull, Users, Settings, Clock, Cpu, User, RotateCcw, Play, Globe, Link, Palette, Crosshair, Puzzle, Swords, Handshake, ShieldAlert, Target, ShoppingBag, Coins, Share2, Calendar, Zap, Crown, MessageSquare, SkipBack, SkipForward, Pause, FastForward, Sparkles, Castle, Flame, Sun, Tent, Axe } from 'lucide-react';
 import { signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, appId } from '../firebase/client';
@@ -23,18 +23,18 @@ const QUICK_CHATS = [
 const THEMES = {
   medieval: {
     name: 'Medieval', price: 0,
-    appBg: 'radial-gradient(circle at center, #3e2723 0%, #120a05 100%)',
-    panelBg: '#f4ebd8', 
-    panelBorder: '#8b5a2b',
-    borderWidth: '3px',
-    textMain: '#3e2723', 
-    textMuted: '#8b5a2b',
-    accentPrimary: '#d4af37', 
-    accentText: '#3e2723',
-    font: "'Cinzel', serif",
-    boardOuter: 'border-[12px] border-[#2d1a11] bg-[#2d1a11] shadow-[0_20px_50px_rgba(0,0,0,0.9)] rounded-md',
-    boardLight: 'bg-[#d2b48c] shadow-[inset_0_0_15px_rgba(0,0,0,0.15)]', 
-    boardDark: 'bg-[#8b5a2b] shadow-[inset_0_0_25px_rgba(0,0,0,0.4)]',   
+    appBg: 'linear-gradient(145deg, #faf4e7 0%, #eddfc7 100%)',
+    panelBg: '#fffaf1', 
+    panelBorder: '#d0b58b',
+    borderWidth: '1px',
+    textMain: '#30261c', 
+    textMuted: '#695849',
+    accentPrimary: '#d89d46', 
+    accentText: '#2a2117',
+    font: 'var(--kani-body)',
+    boardOuter: 'border-[7px] border-[#ae8660] bg-[#ae8660] shadow-[0_10px_30px_rgba(82,49,24,0.20)] rounded-md',
+    boardLight: 'bg-[#f8e8cc]', 
+    boardDark: 'bg-[#bb8e60]',   
     useSvgPieces: true,
     W: "bg-[#fff8e1] border-2 border-[#d7ccc8] shadow-md text-[#3e2723] font-serif",
     B: "bg-[#455a64] border-2 border-[#263238] shadow-md text-[#e0f7fa] font-serif",

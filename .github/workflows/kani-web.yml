@@ -31,3 +31,33 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run build
+      - name: PWA runtime smoke test
+        shell: bash
+        run: |
+          npm run start > /tmp/kani-start.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const origin = 'http://127.0.0.1:3000';
+          for (const page of ['/', '/offline', '/sw.js']) {
+            const response = await fetch(origin + page);
+            assert.equal(response.status, 200, page + ' did not respond');
+          }
+          const response = await fetch(origin + '/manifest.webmanifest');
+          assert.equal(response.status, 200);
+          const manifest = await response.json();
+          assert.equal(manifest.display, 'standalone');
+          assert.equal(manifest.scope, '/');
+          for (const size of [180, 192, 512]) {
+            const icon = await fetch(origin + '/icons/' + size + '.png');
+            assert.equal(icon.status, 200, 'icon ' + size);
+            assert.match(icon.headers.get('content-type') || '', /image\/png/);
+            const bytes = new Uint8Array(await icon.arrayBuffer());
+            assert.deepEqual(Array.from(bytes.slice(0, 8)), [137,80,78,71,13,10,26,10]);
+          }
+          JS
