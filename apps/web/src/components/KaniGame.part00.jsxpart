@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Trophy, Shield, Skull, Users, Settings, Clock, Cpu, User, RotateCcw, Play, Globe, Link, Palette, Crosshair, Puzzle, Swords, Handshake, ShieldAlert, Target, ShoppingBag, Coins, Share2, Calendar, Zap, Crown, MessageSquare, SkipBack, SkipForward, Pause, FastForward, Sparkles, Castle, Flame, Sun, Tent, Axe } from 'lucide-react';
+import { ArrowRight, Check, Trophy, Shield, Skull, Users, Settings, Clock, Cpu, User, RotateCcw, Play, Globe, Link, Palette, Crosshair, Puzzle, Swords, Handshake, ShieldAlert, Target, ShoppingBag, Coins, Share2, Calendar, Zap, Crown, MessageSquare, SkipBack, SkipForward, Pause, FastForward, Sparkles, Castle, Flame, Sun, Tent, Axe } from 'lucide-react';
 import { signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, appId } from '../firebase/client';
