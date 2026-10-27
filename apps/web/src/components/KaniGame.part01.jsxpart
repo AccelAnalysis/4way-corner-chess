@@ -53,7 +53,7 @@
       setShowMatchResult(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => setShowMatchResult(true), MOVE_DURATION_MS);
+    const timer = window.setTimeout(() => setShowMatchResult(true), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : MOVE_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [winner, gameState]);
 
@@ -62,7 +62,7 @@
       setShowPromotionOptions(false);
       return undefined;
     }
-    const timer = window.setTimeout(() => setShowPromotionOptions(true), MOVE_DURATION_MS);
+    const timer = window.setTimeout(() => setShowPromotionOptions(true), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : MOVE_DURATION_MS);
     return () => window.clearTimeout(timer);
   }, [promotionState, gameState]);
   const [winner, setWinner] = useState(null);
